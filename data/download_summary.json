@@ -1,0 +1,336 @@
+{
+  "generated_at": "2026-07-12T21:44:03.474605+00:00",
+  "duration_seconds": 49.2,
+  "provider": "Yahoo Finance",
+  "version": "1.0.0",
+  "git_commit": "2c106f8",
+  "python_version": "3.11.15",
+  "yfinance_version": "1.5.1",
+  "pandas_version": "3.0.2",
+  "processed": 80,
+  "ok": 0,
+  "failed": 80,
+  "success_rate_pct": 0.0,
+  "tickers_failed": [
+    {
+      "ticker": "AAPL",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "MSFT",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "GOOGL",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "AMZN",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "NVDA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "META",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "TSLA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "BRK-B",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "JPM",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "V",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "UNH",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "XOM",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "JNJ",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "WMT",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "MA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "PG",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "HD",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "CVX",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "MRK",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ABBV",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "KO",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "PEP",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "COST",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "AVGO",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ADBE",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "CRM",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "BAC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "MCD",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "TMO",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "CSCO",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ACN",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ABT",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "LIN",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "DHR",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "WFC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "TXN",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "NEE",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "PM",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ORCL",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "NKE",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "DIS",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "VZ",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "CMCSA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "INTC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "AMD",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "QCOM",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "IBM",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "GE",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "CAT",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "BA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ASML.AS",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "SAP.DE",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "MC.PA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "SIE.DE",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "TTE.PA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "OR.PA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "SAN.PA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "AIR.PA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ALV.DE",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "DTE.DE",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "NESN.SW",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "NOVN.SW",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ROG.SW",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "RMS.PA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "AI.PA",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ADYEN.AS",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "IBE.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "BBVA.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ITX.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "REP.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "TEF.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "FER.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "AMS.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ACS.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "ELE.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "CLNX.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "GRF.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "NTGY.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "CABK.MC",
+      "reason": "nan_in_ohlc"
+    },
+    {
+      "ticker": "AENA.MC",
+      "reason": "nan_in_ohlc"
+    }
+  ]
+}
