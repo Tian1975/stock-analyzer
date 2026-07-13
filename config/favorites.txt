@@ -1,1 +1,3 @@
-
+AAPL
+NVDA
+ASML.AS
