@@ -18,6 +18,7 @@ import json
 import logging
 import platform
 import subprocess
+import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,7 +27,7 @@ import pandas as pd
 import yfinance as yf
 
 from universe import ALL_TICKERS, REGION_MAP
-from config import HISTORY_PERIOD, MAX_RETRIES, REQUEST_DELAY, PROVIDER, VERSION, MIN_SESSIONS
+from config import HISTORY_PERIOD, MAX_RETRIES, REQUEST_DELAY, PROVIDER, VERSION, MIN_SESSIONS, MIN_SUCCESS_RATE_PCT
 
 logging.basicConfig(
     level=logging.INFO,
@@ -324,6 +325,13 @@ def main():
               f"({summary['success_rate_pct']}%).")
     if results_summary["failed"]:
         log.warning(f"Fallits: {[f['ticker'] for f in results_summary['failed']]}")
+
+    if summary["success_rate_pct"] < MIN_SUCCESS_RATE_PCT:
+        log.error(
+            f"Percentatge d'èxit ({summary['success_rate_pct']}%) per sota del "
+            f"llindar mínim ({MIN_SUCCESS_RATE_PCT}%). Es marca el job com a fallit."
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":
