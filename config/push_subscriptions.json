@@ -1,9 +1,9 @@
 [
 {
-  "endpoint": "https://web.push.apple.com/QASZRT6wwbHaHQ9gkSH0RNn3ARvPEL2kJSlWo_hIwny-l4_IiZbqJvWtDMYS9tOW1auX6S3w6hpILRts979Iz3jpYpJQzT5t02p21YmfuMaYaEfZhnbBGQR4LpIkBaOYqrA82MXTxZNGSXE3JGlqi70F-FCWESQpJtVkCeYGWQU",
+  "endpoint": "https://web.push.apple.com/QPFWO52KMGEkwT4VD6OiL458H-tB5aMONUblCFcoDu-KirtymiTGPyK2fVaC7uuOX2aifBVbcRwaIyz_ZOJ0tVZ1HKZjX1jMwMXD3vu8Ebb4NEBOJO08byt8ax9IlNAPQf21e1RtdJuiyynm8Gedy3HwZjiMJy6xp1UxWmZv6HU",
   "keys": {
-    "p256dh": "BPhHJ4Y06hjPASTpwScRpf-ljk1zw2ZLyQLfP1BVCMAsH67zBsmn7F5iVAbxmlT9ZKQDivGzippehDeB5i8rH5U",
-    "auth": "KTcbfBGlPLuIWcVXLZ016w"
+    "p256dh": "BC8Qa_eQyK_v4GHI562Y1Yfee_6k8oMakNsgtK0woSrktge590yTlrIA8hRvPFiIvGsSstMObUKbaBomAWh-KYA",
+    "auth": "gYK4WVcxQgqI3MzSKBPY0w"
   }
 }
 ]
