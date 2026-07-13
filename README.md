@@ -7,8 +7,7 @@ Pipeline: `download.py` → `indicators.py` → `fundamentals.py` → `scoring.p
 
 - ✅ Download engine
 - ✅ Indicators
-- ⬜ Fundamentals scoring
-- ⬜ Scoring
+- ✅ Scoring (fundamentals + technical combined)
 - ⬜ Alerts
 - ⬜ PWA
 
