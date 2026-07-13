@@ -24,6 +24,7 @@ import os
 from pathlib import Path
 
 import requests
+from pywebpush import webpush, WebPushException
 
 from config import (
     ALERT_SCORE_DROP_WATCH,
@@ -45,6 +46,7 @@ SCORES_PATH = BASE_DIR / "data" / "scores.json"
 INDICATORS_PATH = BASE_DIR / "data" / "indicators.json"
 HISTORY_DIR = BASE_DIR / "data" / "history" / "scores"
 FAVORITES_PATH = BASE_DIR / "config" / "favorites.txt"
+PUSH_SUBSCRIPTIONS_PATH = BASE_DIR / "config" / "push_subscriptions.json"
 
 
 def load_favorites() -> set:
@@ -100,11 +102,11 @@ def check_ticker_alerts(ticker: str, today: dict, yesterday: dict, indicators: d
     if is_favorite:
         if rank_today is not None and rank_today <= 10 and (rank_prev is None or rank_prev > 10):
             if rank_today <= 3:
-                alerts.append(f"🚀 **{ticker}** entra al **Top 3** (posició #{rank_today})")
+                alerts.append(f"🚀 **{ticker}** entra al **Top 3** (posició núm. {rank_today})")
             else:
-                alerts.append(f"📈 **{ticker}** entra al **Top 10** (posició #{rank_today})")
+                alerts.append(f"📈 **{ticker}** entra al **Top 10** (posició núm. {rank_today})")
         elif rank_prev is not None and rank_prev <= 10 and (rank_today is None or rank_today > 10):
-            alerts.append(f"📉 **{ticker}** surt del **Top 10** (ara #{rank_today})")
+            alerts.append(f"📉 **{ticker}** surt del **Top 10** (ara núm. {rank_today})")
 
         # --- RSI ---
         rsi = ind.get("momentum", {}).get("rsi14")
@@ -145,16 +147,63 @@ def check_global_discoveries(today_scores: dict, favorites: set) -> list:
     alerts = []
     for ticker, r in today_scores.items():
         if r.get("is_new_top10") and ticker not in favorites:
-            alerts.append(f"🔥 **{ticker}** entra al Top 10 per primera vegada (posició #{r['rank_mid_term']}) — no el segueixes encara")
+            alerts.append(f"🔥 **{ticker}** entra al Top 10 per primera vegada (posició núm. {r['rank_mid_term']}) — no el segueixes encara")
     return alerts
 
 
-def create_github_issue(title: str, body: str) -> bool:
+def load_push_subscriptions() -> list:
+    if not PUSH_SUBSCRIPTIONS_PATH.exists():
+        return []
+    with open(PUSH_SUBSCRIPTIONS_PATH, encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            log.warning("push_subscriptions.json no és un JSON vàlid; s'ignora.")
+            return []
+
+
+def send_web_push(alerts: list, issue_url: str | None):
+    subscriptions = load_push_subscriptions()
+    if not subscriptions:
+        log.info("Cap subscripció push configurada (config/push_subscriptions.json buit).")
+        return
+
+    private_key = os.environ.get("VAPID_PRIVATE_KEY")
+    claims_email = os.environ.get("VAPID_CLAIMS_EMAIL", "mailto:example@example.com")
+    if not private_key:
+        log.warning("VAPID_PRIVATE_KEY no configurat als secrets; no s'envia push.")
+        return
+
+    title = f"📊 {len(alerts)} alertes noves"
+    body = alerts[0] if len(alerts) == 1 else f"{alerts[0]}\n(+{len(alerts) - 1} més)"
+    # Traiem el markdown (**...**) perquè les notificacions natives no el renderitzen
+    body = body.replace("**", "")
+
+    payload = json.dumps({"title": title, "body": body, "url": issue_url or "./"})
+
+    sent, failed = 0, 0
+    for sub in subscriptions:
+        try:
+            webpush(
+                subscription_info=sub,
+                data=payload,
+                vapid_private_key=private_key,
+                vapid_claims={"sub": claims_email},
+            )
+            sent += 1
+        except WebPushException as e:
+            failed += 1
+            log.error(f"Error enviant push: {e}")
+
+    log.info(f"Push enviat: {sent} correcte(s), {failed} fallit(s).")
+
+
+def create_github_issue(title: str, body: str) -> str | None:
     token = os.environ.get("GITHUB_TOKEN")
     repo = os.environ.get("GITHUB_REPOSITORY")  # format "usuari/repo"
     if not token or not repo:
         log.warning("GITHUB_TOKEN o GITHUB_REPOSITORY no disponibles; no es crea la issue (execució local?)")
-        return False
+        return None
 
     url = f"https://api.github.com/repos/{repo}/issues"
     headers = {
@@ -165,11 +214,12 @@ def create_github_issue(title: str, body: str) -> bool:
 
     resp = requests.post(url, headers=headers, json=payload, timeout=30)
     if resp.status_code == 201:
-        log.info(f"Issue creada: {resp.json().get('html_url')}")
-        return True
+        issue_url = resp.json().get("html_url")
+        log.info(f"Issue creada: {issue_url}")
+        return issue_url
     else:
         log.error(f"Error creant la issue ({resp.status_code}): {resp.text[:300]}")
-        return False
+        return None
 
 
 def main():
@@ -202,7 +252,8 @@ def main():
     body_lines.append("\n---\n*Generat automàticament per `alerts.py`. No és cap consell d'inversió.*")
     body = "\n".join(body_lines)
 
-    create_github_issue(f"📊 Alertes Stock Analyzer — {len(all_alerts)} avisos", body)
+    issue_url = create_github_issue(f"📊 Alertes Stock Analyzer — {len(all_alerts)} avisos", body)
+    send_web_push(all_alerts, issue_url)
 
 
 if __name__ == "__main__":
