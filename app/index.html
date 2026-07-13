@@ -1,1 +1,118 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0B1420" />
+<title>Stock Analyzer</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Stocks" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
 
+<div id="app" class="app">
+
+  <!-- ============ PANTALLA: INICI ============ -->
+  <section id="screen-home" class="screen" data-screen="home">
+    <header class="home-header">
+      <div class="greeting" id="greeting">Bon dia 👋</div>
+      <div class="freshness" id="freshness">Carregant...</div>
+    </header>
+
+    <div class="search-bar" id="search-bar-home">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input-home" placeholder="Cerca una empresa..." autocomplete="off" />
+    </div>
+
+    <section class="section" id="favorites-section" hidden>
+      <div class="section-title">
+        <span>⭐ Favorits</span>
+      </div>
+      <div id="favorites-list" class="compact-list"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">
+        <span>🔥 Top oportunitats avui</span>
+      </div>
+      <div id="top10-list" class="ranked-list"></div>
+      <button class="link-button" id="btn-view-all">Veure rànquing complet →</button>
+    </section>
+  </section>
+
+  <!-- ============ PANTALLA: RÀNQUING COMPLET ============ -->
+  <section id="screen-ranking" class="screen" data-screen="ranking" hidden>
+    <header class="sub-header">
+      <button class="back-button" id="btn-back-from-ranking">←</button>
+      <h1>Rànquing complet</h1>
+    </header>
+
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input-ranking" placeholder="Cerca..." autocomplete="off" />
+    </div>
+
+    <div class="filter-chips" id="filter-horizon">
+      <button class="chip active" data-horizon="mid_term">Mitjà termini</button>
+      <button class="chip" data-horizon="short_term">Curt termini</button>
+      <button class="chip" data-horizon="long_term">Llarg termini</button>
+    </div>
+
+    <div class="filter-chips" id="filter-region">
+      <button class="chip active" data-region="all">Tots</button>
+      <button class="chip" data-region="US">EUA</button>
+      <button class="chip" data-region="EU">Europa</button>
+      <button class="chip" data-region="ES">Espanya</button>
+      <button class="chip" data-region="favorites">⭐ Favorits</button>
+    </div>
+
+    <div id="ranking-list" class="ranked-list ranked-list--full"></div>
+  </section>
+
+  <!-- ============ PANTALLA: DETALL D'EMPRESA ============ -->
+  <section id="screen-detail" class="screen" data-screen="detail" hidden>
+    <header class="sub-header">
+      <button class="back-button" id="btn-back-from-detail">←</button>
+      <h1 id="detail-ticker">—</h1>
+      <button class="star-button" id="btn-toggle-favorite">☆</button>
+    </header>
+
+    <div class="detail-hero">
+      <div class="ring-wrap ring-wrap--large" id="detail-ring"></div>
+      <div class="detail-hero-meta">
+        <div class="detail-price" id="detail-price">—</div>
+        <div class="detail-updated" id="detail-updated">—</div>
+      </div>
+    </div>
+
+    <div class="horizon-bars" id="detail-horizons"></div>
+
+    <div class="section-title"><span>Subscores</span></div>
+    <div class="subscore-grid" id="detail-subscores"></div>
+
+    <div class="risk-chip-wrap">
+      <span class="risk-chip" id="detail-risk">—</span>
+      <span class="confidence-note" id="detail-confidence">—</span>
+    </div>
+
+    <div class="section-title"><span>Per què aquesta puntuació</span></div>
+    <ul class="explanation-list" id="detail-explanation"></ul>
+  </section>
+
+  <!-- ============ ESTAT: CARREGANT / ERROR ============ -->
+  <div id="state-overlay" class="state-overlay" hidden>
+    <div id="state-message">Carregant dades...</div>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
