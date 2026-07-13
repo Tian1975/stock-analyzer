@@ -222,6 +222,60 @@ function renderRanking(searchTerm = "") {
 
 // ---------- Renderitzat: detall d'empresa ----------
 
+function renderSparkline(series, width = 280, height = 56) {
+  const values = series.map((p) => p.mid_term).filter((v) => v !== null && v !== undefined);
+  if (values.length < 2) {
+    return `<div class="empty-note">Encara no hi ha prou historial per mostrar l'evolució.</div>`;
+  }
+  const min = Math.min.apply(null, values);
+  const max = Math.max.apply(null, values);
+  const range = max - min || 1;
+  const stepX = width / (series.length - 1);
+
+  const points = series
+    .map((p, i) => {
+      const v = p.mid_term === null || p.mid_term === undefined ? null : p.mid_term;
+      if (v === null) return null;
+      const x = i * stepX;
+      const y = height - ((v - min) / range) * height;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .filter((p) => p !== null)
+    .join(" ");
+
+  const trendUp = values[values.length - 1] >= values[0];
+  const color = trendUp ? "var(--green)" : "var(--red)";
+
+  return `
+    <svg class="sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+    </svg>
+  `;
+}
+
+function renderEvolutionBox(r) {
+  const parts = [];
+
+  if (r.days_in_top10 && r.days_in_top10 > 0) {
+    parts.push(`<div class="evolution-stat">📅 Fa <strong>${r.days_in_top10}</strong> ${r.days_in_top10 === 1 ? "dia" : "dies"} al Top 10</div>`);
+  }
+
+  if (r.rank_change_7d !== null && r.rank_change_7d !== undefined) {
+    const cls = r.rank_change_7d > 0 ? "delta-up" : r.rank_change_7d < 0 ? "delta-down" : "";
+    const verb = r.rank_change_7d > 0 ? "Ha pujat" : r.rank_change_7d < 0 ? "Ha baixat" : "Es manté";
+    const amount = Math.abs(r.rank_change_7d);
+    const text = amount > 0 ? `${verb} ${amount} ${amount === 1 ? "posició" : "posicions"} aquesta setmana` : "Es manté estable aquesta setmana";
+    parts.push(`<div class="evolution-stat ${cls}">📊 ${text}</div>`);
+  }
+
+  const sparklineHtml = r.history_series ? renderSparkline(r.history_series) : "";
+
+  return `
+    ${parts.length ? `<div class="evolution-stats">${parts.join("")}</div>` : ""}
+    ${sparklineHtml}
+  `;
+}
+
 function renderDetail(ticker) {
   const r = SCORES.results.find((x) => x.ticker === ticker);
   if (!r) {
@@ -233,6 +287,8 @@ function renderDetail(ticker) {
   document.getElementById("detail-price").textContent =
     r.last_close !== null ? `${r.last_close.toFixed(2)}` : "—";
   document.getElementById("detail-updated").textContent = `Dades del ${r.as_of || "—"}`;
+
+  document.getElementById("evolution-box").innerHTML = renderEvolutionBox(r);
 
   document.getElementById("detail-ring").outerHTML = renderRing(r.scores.mid_term, 128, 8)
     .replace('class="ring-wrap', 'id="detail-ring" class="ring-wrap ring-wrap--large');
