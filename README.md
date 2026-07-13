@@ -6,7 +6,7 @@ Pipeline: `download.py` → `indicators.py` → `fundamentals.py` → `scoring.p
 ## Project status
 
 - ✅ Download engine
-- ⬜ Indicators
+- ✅ Indicators
 - ⬜ Fundamentals scoring
 - ⬜ Scoring
 - ⬜ Alerts
