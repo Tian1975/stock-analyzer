@@ -16,13 +16,13 @@ let CURRENT_REGION = "all";
 function getFavorites() {
   try {
     return new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]"));
-  } catch {
+  } catch (e) {
     return new Set();
   }
 }
 
 function saveFavorites(set) {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...set]));
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(Array.from(set)));
 }
 
 function toggleFavorite(ticker) {
@@ -131,7 +131,7 @@ function renderHome() {
   }
 
   // Top 10
-  const top10 = [...results]
+  const top10 = Array.from(results)
     .filter((r) => r.scores.mid_term !== null)
     .sort((a, b) => b.scores.mid_term - a.scores.mid_term)
     .slice(0, 10);
@@ -143,7 +143,9 @@ function renderHome() {
 }
 
 function renderRankedRow(r, rank) {
-  const score = r.scores[CURRENT_HORIZON] ?? r.scores.mid_term;
+  const midTermScore = r.scores.mid_term;
+  const horizonScore = r.scores[CURRENT_HORIZON];
+  const score = (horizonScore === null || horizonScore === undefined) ? midTermScore : horizonScore;
   const scoreChange = r.score_change_mid_term;
   let scoreChangeHtml = "";
   if (!r.is_new_entry && scoreChange !== null && scoreChange !== undefined) {
@@ -191,7 +193,7 @@ function attachRowHandlers(container) {
 
 function renderRanking(searchTerm = "") {
   const favs = getFavorites();
-  let results = [...SCORES.results];
+  let results = Array.from(SCORES.results);
 
   if (CURRENT_REGION === "favorites") {
     results = results.filter((r) => favs.has(r.ticker));
