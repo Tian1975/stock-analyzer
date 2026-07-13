@@ -32,6 +32,13 @@
       <input type="text" id="search-input-home" placeholder="Cerca una empresa..." autocomplete="off" />
     </div>
 
+    <section class="section" id="daily-summary-section" hidden>
+      <div class="section-title">
+        <span>📅 Què ha canviat avui</span>
+      </div>
+      <ul class="daily-summary-list" id="daily-summary-list"></ul>
+    </section>
+
     <section class="section" id="favorites-section" hidden>
       <div class="section-title">
         <span>⭐ Favorits</span>
@@ -87,6 +94,8 @@
 
     <div class="detail-hero">
       <div class="ring-wrap ring-wrap--large" id="detail-ring"></div>
+      <div class="score-deltas" id="score-deltas"></div>
+    <div class="recommendation-line" id="recommendation-line"></div>
       <div class="detail-hero-meta">
         <div class="detail-price" id="detail-price">—</div>
         <div class="detail-updated" id="detail-updated">—</div>
@@ -96,6 +105,8 @@
     <div class="evolution-box" id="evolution-box"></div>
 
     <div class="narrative-box" id="narrative-box"></div>
+
+    <div class="timeline-box" id="timeline-box"></div>
 
     <div id="what-changed-box"></div>
 
@@ -113,6 +124,10 @@
       📈 Veure cotització i operar →
     </a>
     <button class="link-button" id="btn-configure-broker">⚙️ Configurar el meu broker</button>
+
+    <button class="ai-button" id="btn-ai-analysis">🤖 Analitzar amb IA →</button>
+
+    <button class="ai-button" id="btn-analyze-ai">🤖 Analitzar amb IA</button>
 
     <div class="checklist-box" id="checklist-box"></div>
 

@@ -572,6 +572,160 @@ body {
 .checklist-list li.check-ok { color: var(--text); }
 .checklist-list li.check-fail { color: var(--text-tertiary); }
 
+.score-deltas {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
+  color: var(--text-secondary);
+}
+.score-delta-item.delta-up { color: var(--green); }
+.score-delta-item.delta-down { color: var(--red); }
+
+.semaforo-summary {
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.semaforo-summary.semaforo-verd { background: rgba(52,199,89,0.12); }
+.semaforo-summary.semaforo-groc { background: rgba(255,214,10,0.12); }
+.semaforo-summary.semaforo-vermell { background: rgba(255,65,54,0.12); }
+.semaforo-headline {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+.semaforo-summary.semaforo-verd .semaforo-headline { color: var(--green); }
+.semaforo-summary.semaforo-groc .semaforo-headline { color: var(--amber); }
+.semaforo-summary.semaforo-vermell .semaforo-headline { color: var(--red); }
+.semaforo-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.watch-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin: 16px 0 20px;
+}
+.watch-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--amber);
+  margin-bottom: 4px;
+}
+.watch-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+.watch-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.watch-list li {
+  font-size: 13px;
+  color: var(--text);
+  padding-left: 14px;
+  position: relative;
+}
+.watch-list li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--amber);
+}
+
+/* ---------- Resum diari (pantalla d'inici) ---------- */
+.daily-summary-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.daily-summary-list li {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* ---------- Frase de recomanació ---------- */
+.recommendation-text {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+  padding: 0 12px;
+}
+.recommendation-text.rec-verd { color: var(--green); }
+.recommendation-text.rec-groc { color: var(--amber); }
+.recommendation-text.rec-vermell { color: var(--red); }
+
+/* ---------- Historial de la tesi ---------- */
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.timeline-entry {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--navy);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+.timeline-date {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+.timeline-changes {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.timeline-changes li {
+  font-size: 13px;
+}
+
+/* ---------- Botó d'anàlisi amb IA ---------- */
+.ai-button {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: var(--navy);
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.ai-button:active { opacity: 0.85; }
+
 /* ---------- Estats de càrrega / error ---------- */
 .state-overlay {
   position: fixed;

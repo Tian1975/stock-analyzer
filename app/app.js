@@ -16,6 +16,7 @@ const VAPID_PUBLIC_KEY = "BPf9BSYp0Mxja31mFqL5M-hMKgOTgTZJOBR_fr3dgONhvIbHD0Nljc
 let SCORES = null; // contingut carregat de scores.json
 let CURRENT_HORIZON = "mid_term";
 let CURRENT_REGION = "all";
+let CURRENT_DETAIL_TICKER = null;
 
 // ---------- Web Push ----------
 
@@ -174,6 +175,18 @@ function renderHome() {
   document.getElementById("freshness").textContent =
     `Última actualització ${timeAgoLabel(SCORES.generated_at)}`;
   document.getElementById("freshness").classList.toggle("stale", isStale(SCORES.generated_at));
+
+  // Resum diari a nivell d'univers
+  const summarySection = document.getElementById("daily-summary-section");
+  const summaryList = document.getElementById("daily-summary-list");
+  if (SCORES.universe_daily_summary && SCORES.universe_daily_summary.length > 0) {
+    summarySection.hidden = false;
+    summaryList.innerHTML = SCORES.universe_daily_summary
+      .map((line) => `<li>${line}</li>`)
+      .join("");
+  } else {
+    summarySection.hidden = true;
+  }
 
   // Favorits
   const favSection = document.getElementById("favorites-section");
@@ -350,7 +363,7 @@ function renderNarrativeBox(r) {
   if (!r.narrative) return "";
   return `
     <div class="narrative-card">
-      <div class="narrative-title">💬 Per què està aquí</div>
+      <div class="narrative-title">🎯 Per què està aquí</div>
       <p>${r.narrative}</p>
     </div>
   `;
@@ -373,18 +386,119 @@ function renderWhatChanged(r) {
 function renderChecklist(r) {
   if (!r.checklist) return "";
   const semaforoIcon = r.checklist.semaforo === "verd" ? "🟢" : r.checklist.semaforo === "groc" ? "🟡" : "🔴";
-  const semaforoText = r.checklist.semaforo === "verd" ? "Comprar (a considerar)" : r.checklist.semaforo === "groc" ? "Esperar / vigilar" : "Revisar posició";
+  const semaforoText = r.checklist.semaforo === "verd" ? "TESI VIGENT" : r.checklist.semaforo === "groc" ? "TESI A VIGILAR" : "TESI EN DUBTE";
   const items = r.checklist.items
     .map((item) => `<li class="${item.ok ? "check-ok" : "check-fail"}">${item.ok ? "✔" : "✖"} ${item.label}</li>`)
     .join("");
   return `
     <div class="section-title"><span>Estat de la tesi</span></div>
-    <div class="semaforo-row">
-      <span class="semaforo-badge semaforo-${r.checklist.semaforo}">${semaforoIcon} ${semaforoText}</span>
-      <span class="semaforo-count">${r.checklist.passed}/${r.checklist.total} criteris</span>
+    <div class="semaforo-summary semaforo-${r.checklist.semaforo}">
+      <div class="semaforo-headline">${semaforoIcon} ${semaforoText}</div>
+      <div class="semaforo-sub">${r.checklist.passed}/${r.checklist.total} criteris complets · Última revisió: avui</div>
     </div>
     <ul class="checklist-list">${items}</ul>
   `;
+}
+
+function renderWatchList(r) {
+  if (!r.watch_list || r.watch_list.length === 0) return "";
+  const items = r.watch_list.map((w) => `<li>${w}</li>`).join("");
+  return `
+    <div class="watch-card">
+      <div class="watch-title">⚠️ Què vigilar</div>
+      <p class="watch-subtitle">Què podria fer trontollar aquesta tesi:</p>
+      <ul class="watch-list">${items}</ul>
+    </div>
+  `;
+}
+
+function renderScoreDeltas(r) {
+  const items = [];
+  const specs = [
+    { value: r.score_change_mid_term, label: "avui" },
+    { value: r.score_change_7d, label: "setmana" },
+    { value: r.score_change_30d, label: "mes" },
+  ];
+  specs.forEach((spec) => {
+    if (spec.value === null || spec.value === undefined) return;
+    const cls = spec.value > 0 ? "delta-up" : spec.value < 0 ? "delta-down" : "";
+    const arrow = spec.value > 0 ? "▲" : spec.value < 0 ? "▼" : "═";
+    const sign = spec.value > 0 ? "+" : "";
+    items.push(`<span class="score-delta-item ${cls}">${arrow} ${sign}${spec.value.toFixed(1)} ${spec.label}</span>`);
+  });
+  if (items.length === 0) return "";
+  return items.join(" · ");
+}
+
+function renderRecommendationLine(r) {
+  if (!r.recommendation_line) return "";
+  const cls = r.recommendation_line.indexOf("🟢") === 0 ? "rec-verd" : r.recommendation_line.indexOf("🟡") === 0 ? "rec-groc" : "rec-vermell";
+  return `<div class="recommendation-text ${cls}">${r.recommendation_line}</div>`;
+}
+
+function renderTimeline(r) {
+  if (!r.change_timeline || r.change_timeline.length === 0) return "";
+  const entries = r.change_timeline
+    .map((entry) => {
+      const changes = entry.changes.map((c) => `<li>${c}</li>`).join("");
+      return `
+        <div class="timeline-entry">
+          <div class="timeline-date">${entry.date}</div>
+          <ul class="timeline-changes">${changes}</ul>
+        </div>
+      `;
+    })
+    .join("");
+  return `
+    <div class="section-title"><span>🕓 Historial de la tesi</span></div>
+    <div class="timeline-list">${entries}</div>
+  `;
+}
+
+function buildAISummary(r) {
+  const lines = [];
+  lines.push(`Anàlisi de ${r.ticker} (dades del ${r.as_of})`);
+  lines.push("");
+  lines.push(`Preu actual: ${r.last_close}`);
+  lines.push(`Score: curt=${r.scores.short_term}, mitjà=${r.scores.mid_term}, llarg=${r.scores.long_term}`);
+  lines.push(`Rànquing (mitjà termini): #${r.rank_mid_term} de ${SCORES.universe_size}`);
+  lines.push(`Risc: ${r.risk_label} | Confiança de dades: ${r.confidence_pct}%`);
+  lines.push("");
+  lines.push("Subscores:");
+  Object.entries(r.subscores).forEach(([k, v]) => {
+    lines.push(`- ${k}: ${v !== null ? v : "N/D"}`);
+  });
+  lines.push("");
+  lines.push("Explicació del score:");
+  r.explanation.forEach((line) => lines.push(`- ${line}`));
+  lines.push("");
+  lines.push(`Estat de la tesi: ${r.checklist.passed}/${r.checklist.total} criteris (${r.checklist.semaforo})`);
+  r.checklist.items.forEach((item) => {
+    lines.push(`- ${item.ok ? "✔" : "✖"} ${item.label}`);
+  });
+  if (r.watch_list && r.watch_list.length > 0) {
+    lines.push("");
+    lines.push("Què podria fer trontollar la tesi:");
+    r.watch_list.forEach((w) => lines.push(`- ${w}`));
+  }
+  lines.push("");
+  lines.push("---");
+  lines.push("Amb aquestes dades reals (generades per un sistema de regles, no per IA), fes una anàlisi de l'empresa i digue'm què en penses.");
+  return lines.join("\n");
+}
+
+async function handleAIAnalysisClick(ticker) {
+  const r = SCORES.results.find((x) => x.ticker === ticker);
+  if (!r) return;
+  const summary = buildAISummary(r);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(summary);
+    }
+  } catch (e) {
+    // Si el clipboard falla, igualment obrim claude.ai; l'usuari pot enganxar manualment
+  }
+  window.open("https://claude.ai/new", "_blank");
 }
 
 function renderDetail(ticker) {
@@ -398,11 +512,15 @@ function renderDetail(ticker) {
   document.getElementById("detail-price").textContent =
     r.last_close !== null ? `${r.last_close.toFixed(2)}` : "—";
   document.getElementById("detail-updated").textContent = `Dades del ${r.as_of || "—"}`;
+  document.getElementById("score-deltas").innerHTML = renderScoreDeltas(r);
+  document.getElementById("recommendation-line").innerHTML = renderRecommendationLine(r);
+  CURRENT_DETAIL_TICKER = r.ticker;
 
   document.getElementById("evolution-box").innerHTML = renderEvolutionBox(r);
   document.getElementById("narrative-box").innerHTML = renderNarrativeBox(r);
+  document.getElementById("timeline-box").innerHTML = renderTimeline(r);
   document.getElementById("what-changed-box").innerHTML = renderWhatChanged(r);
-  document.getElementById("checklist-box").innerHTML = renderChecklist(r);
+  document.getElementById("checklist-box").innerHTML = renderChecklist(r) + renderWatchList(r);
 
   document.getElementById("detail-ring").outerHTML = renderRing(r.scores.mid_term, 128, 8)
     .replace('class="ring-wrap', 'id="detail-ring" class="ring-wrap ring-wrap--large');
@@ -525,8 +643,7 @@ function setupEventListeners() {
     const current = localStorage.getItem(BROKER_URL_KEY) || "";
     document.getElementById("broker-url-input").value = current;
     document.getElementById("broker-modal").hidden = false;
-  });
-  document.getElementById("btn-close-broker-modal").addEventListener("click", () => {
+  });  document.getElementById("btn-close-broker-modal").addEventListener("click", () => {
     document.getElementById("broker-modal").hidden = true;
   });
   document.getElementById("btn-save-broker").addEventListener("click", () => {
@@ -534,6 +651,12 @@ function setupEventListeners() {
     saveBrokerTemplate(value);
     document.getElementById("broker-modal").hidden = true;
     alert("Configuració desada.");
+  });
+
+  document.getElementById("btn-ai-analysis").addEventListener("click", () => {
+    if (CURRENT_DETAIL_TICKER) {
+      handleAIAnalysisClick(CURRENT_DETAIL_TICKER);
+    }
   });
 
   document.getElementById("search-input-home").addEventListener("input", (e) => {
