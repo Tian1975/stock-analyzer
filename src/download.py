@@ -186,6 +186,44 @@ def build_sanity_report(all_records: list[dict]) -> dict:
     }
 
 
+def extract_ticker_df(bulk: pd.DataFrame, ticker: str, n_tickers: int) -> pd.DataFrame:
+    """Extreu el DataFrame d'un ticker del resultat de yf.download() en bloc.
+
+    yfinance pot retornar les columnes com MultiIndex (ticker, camp) o
+    (camp, ticker) segons la versió — per això comprovem els dos ordres
+    explícitament en lloc d'assumir-ne un.
+    """
+    if n_tickers == 1:
+        return bulk
+
+    if not isinstance(bulk.columns, pd.MultiIndex):
+        return pd.DataFrame()
+
+    level0_values = set(bulk.columns.get_level_values(0))
+    level1_values = set(bulk.columns.get_level_values(1))
+
+    try:
+        if ticker in level0_values:
+            return bulk[ticker]
+        elif ticker in level1_values:
+            return bulk.xs(ticker, axis=1, level=1)
+        else:
+            return pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
+
+
+def fallback_individual_download(ticker: str) -> pd.DataFrame:
+    """Xarxa de seguretat: si l'extracció del bulk falla per un ticker concret,
+    ho intentem individualment abans de donar-lo per perdut."""
+    try:
+        tk = yf.Ticker(ticker)
+        df = tk.history(period=HISTORY_PERIOD, auto_adjust=True)
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+
 def main():
     start = time.time()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -202,15 +240,36 @@ def main():
         progress=False,
     )
 
+    # Diagnòstic: registrem l'estructura de columnes rebuda, per si cal depurar
+    # en el futur un altre canvi de format entre versions de yfinance/pandas.
+    if isinstance(bulk.columns, pd.MultiIndex):
+        log.info(f"Bulk columns level0 (mostra): {list(bulk.columns.get_level_values(0).unique())[:3]}")
+        log.info(f"Bulk columns level1 (mostra): {list(bulk.columns.get_level_values(1).unique())[:3]}")
+    else:
+        log.info(f"Bulk columns (sense MultiIndex): {list(bulk.columns)[:5]}")
+
     results_summary = {"ok": [], "failed": []}
     all_records = []
+    fallback_used = []
 
     for i, ticker in enumerate(ALL_TICKERS, 1):
         log.info(f"[{i}/{len(ALL_TICKERS)}] Processant {ticker}...")
-        try:
-            df = bulk[ticker] if len(ALL_TICKERS) > 1 else bulk
-        except Exception:
-            df = pd.DataFrame()
+        df = extract_ticker_df(bulk, ticker, len(ALL_TICKERS))
+
+        if df is not None and not df.empty:
+            # Important: en un bulk amb mercats de diferents zones/festius,
+            # l'índex de dates és la unió de TOTS els mercats. Un dia festiu
+            # a EUA però laborable a Suïssa deixa NaN al ticker americà eixe
+            # dia, i viceversa. Cal netejar els NaN propis d'aquest ticker
+            # (dies que ELL no va cotitzar) abans de validar-lo, no barrejar-ho
+            # amb "dades corruptes".
+            df = df.dropna(subset=["Open", "High", "Low", "Close"], how="any")
+
+        if df is None or df.empty:
+            log.warning(f"{ticker}: extracció del bulk buida, provant fallback individual...")
+            df = fallback_individual_download(ticker)
+            if df is not None and not df.empty:
+                fallback_used.append(ticker)
 
         tk = yf.Ticker(ticker)
         record = build_ticker_record(ticker, df, tk)
@@ -248,6 +307,7 @@ def main():
         "ok": len(results_summary["ok"]),
         "failed": len(results_summary["failed"]),
         "success_rate_pct": round(100 * len(results_summary["ok"]) / len(ALL_TICKERS), 1),
+        "fallback_individual_used": fallback_used,
         "tickers_failed": results_summary["failed"],
     }
 
