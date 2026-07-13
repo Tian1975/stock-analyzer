@@ -26,3 +26,7 @@ ALERT_MIN_CONFIDENCE_PCT = 90.0
 
 # Retenció de l'historial diari de scores (per evolució i "dies al Top10")
 HISTORY_RETENTION_DAYS = 30
+
+# URL pública de la PWA (per enllaçar directament a la fitxa d'un ticker
+# des de les alertes). Sense barra final.
+PWA_BASE_URL = "https://tian1975.github.io/stock-analyzer"

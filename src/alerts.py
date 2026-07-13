@@ -21,6 +21,7 @@ Variables d'entorn esperades (ja disponibles automàticament a GitHub Actions):
 import json
 import logging
 import os
+import re
 from pathlib import Path
 
 import requests
@@ -32,6 +33,7 @@ from config import (
     ALERT_RSI_OVERBOUGHT,
     ALERT_RSI_OVERSOLD,
     ALERT_MIN_CONFIDENCE_PCT,
+    PWA_BASE_URL,
 )
 
 logging.basicConfig(
@@ -139,6 +141,24 @@ def check_ticker_alerts(ticker: str, today: dict, yesterday: dict, indicators: d
             alerts.append(f"ℹ️ **{ticker}**: confiança de dades baixa ({confidence:.0f}%, falten fonamentals)")
 
     return alerts
+
+
+def ticker_pwa_link(ticker: str) -> str:
+    return f"{PWA_BASE_URL}/#/ticker/{ticker}"
+
+
+def append_ticker_links(alerts: list) -> list:
+    """Afegeix un enllaç directe a la fitxa de la PWA al final de cada
+    línia d'alerta, extraient el ticker del primer **TICKER** que trobi."""
+    result = []
+    for a in alerts:
+        match = re.search(r"\*\*([A-Z0-9.\-]+)\*\*", a)
+        if match:
+            ticker = match.group(1)
+            result.append(f"{a} — [Veure fitxa]({ticker_pwa_link(ticker)})")
+        else:
+            result.append(a)
+    return result
 
 
 def check_global_discoveries(today_scores: dict, favorites: set) -> list:
@@ -266,7 +286,8 @@ def main():
     for a in all_alerts:
         log.info(f"  - {a}")
 
-    body_lines = ["## Alertes d'avui\n"] + [f"- {a}" for a in all_alerts]
+    all_alerts_with_links = append_ticker_links(all_alerts)
+    body_lines = ["## Alertes d'avui\n"] + [f"- {a}" for a in all_alerts_with_links]
     body_lines.append("\n---\n*Generat automàticament per `alerts.py`. No és cap consell d'inversió.*")
     body = "\n".join(body_lines)
 
