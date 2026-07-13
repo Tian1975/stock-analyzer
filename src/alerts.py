@@ -169,7 +169,9 @@ def send_web_push(alerts: list, issue_url: str | None):
         return
 
     private_key = os.environ.get("VAPID_PRIVATE_KEY")
-    claims_email = os.environ.get("VAPID_CLAIMS_EMAIL", "mailto:example@example.com")
+    claims_email = os.environ.get("VAPID_CLAIMS_EMAIL") or "mailto:example@example.com"
+    if not claims_email.startswith("mailto:"):
+        claims_email = "mailto:" + claims_email
     if not private_key:
         log.warning("VAPID_PRIVATE_KEY no configurat als secrets; no s'envia push.")
         return
