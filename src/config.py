@@ -24,8 +24,9 @@ ALERT_RSI_OVERBOUGHT = 70
 ALERT_RSI_OVERSOLD = 30
 ALERT_MIN_CONFIDENCE_PCT = 90.0
 
-# Retenció de l'historial diari de scores (per evolució i "dies al Top10")
-HISTORY_RETENTION_DAYS = 30
+# Retenció de l'historial diari de scores (per evolució, "dies al Top10" i
+# "millor score dels últims 6 mesos")
+HISTORY_RETENTION_DAYS = 180
 
 # URL pública de la PWA (per enllaçar directament a la fitxa d'un ticker
 # des de les alertes). Sense barra final.

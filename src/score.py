@@ -231,6 +231,133 @@ def horizon_scores(subscores: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+CHECKLIST_CRITERIA = [
+    "trend_intact", "earnings_growing", "quality_solid",
+    "valuation_attractive", "risk_controlled", "not_overbought",
+]
+CHECKLIST_LABELS = {
+    "trend_intact": "Tendència intacta (SMA20>SMA50>SMA200)",
+    "earnings_growing": "Beneficis creixent",
+    "quality_solid": "Qualitat sòlida",
+    "valuation_attractive": "Valoració atractiva",
+    "risk_controlled": "Risc controlat",
+    "not_overbought": "Sense sobrecompra",
+}
+
+
+def build_checklist(row_sub: pd.Series, row_raw: pd.Series) -> dict:
+    """Checklist de 6 criteris deterministes (mateixes dades que ja tenim,
+    cap número nou). Falta de dades = criteri no complert (conservador)."""
+    trend_alignment = row_raw.get("trend_alignment")
+    earnings_growth = row_raw.get("earnings_growth")
+    quality = row_sub.get("quality")
+    valuation = row_sub.get("valuation")
+    risk = row_sub.get("risk")
+    rsi = row_raw.get("rsi_raw")
+
+    checks = {
+        "trend_intact": trend_alignment == 3,
+        "earnings_growing": pd.notna(earnings_growth) and earnings_growth > 0,
+        "quality_solid": pd.notna(quality) and quality >= 60,
+        "valuation_attractive": pd.notna(valuation) and valuation >= 50,
+        "risk_controlled": pd.notna(risk) and risk >= 40,
+        "not_overbought": pd.notna(rsi) and rsi < 70,
+    }
+    passed = sum(1 for v in checks.values() if v)
+    total = len(CHECKLIST_CRITERIA)
+
+    if passed >= 5:
+        semaforo = "verd"
+    elif passed >= 3:
+        semaforo = "groc"
+    else:
+        semaforo = "vermell"
+
+    return {
+        "items": [
+            {"key": k, "label": CHECKLIST_LABELS[k], "ok": bool(checks[k])}
+            for k in CHECKLIST_CRITERIA
+        ],
+        "passed": passed,
+        "total": total,
+        "semaforo": semaforo,
+    }
+
+
+def build_what_changed(row_sub: pd.Series, previous_result: dict | None) -> list:
+    """Compara els subscores d'avui amb els d'ahir i retorna només els
+    canvis significatius (≥3 punts), amb icona segons direcció."""
+    if previous_result is None:
+        return []
+    prev_sub = previous_result.get("subscores", {})
+    labels = {
+        "momentum": "Momentum", "trend": "Tendència", "valuation": "Valoració",
+        "quality": "Qualitat", "growth": "Creixement", "risk": "Risc",
+    }
+    changes = []
+    for key, label in labels.items():
+        today_val = row_sub.get(key)
+        prev_val = prev_sub.get(key)
+        if pd.isna(today_val) or prev_val is None:
+            continue
+        delta = round(today_val - prev_val, 1)
+        if abs(delta) >= 3:
+            icon = "✔" if delta > 0 else "⚠"
+            sign = "+" if delta > 0 else ""
+            changes.append(f"{icon} {label} {sign}{delta:.0f}")
+    return changes
+
+
+def build_narrative(ticker: str, row_sub: pd.Series, row_raw: pd.Series, checklist: dict) -> str:
+    """Paràgraf explicatiu generat per plantilla a partir de valors reals
+    — NO és text generat per IA, és concatenació de frases fixes segons
+    condicions numèriques ja calculades."""
+    parts = [f"{ticker}"]
+
+    trend_alignment = row_raw.get("trend_alignment")
+    if trend_alignment == 3:
+        parts.append("manté una tendència alcista alineada (SMA20>SMA50>SMA200)")
+    elif trend_alignment == 0:
+        parts.append("mostra una tendència baixista")
+    else:
+        parts.append("té una tendència mixta")
+
+    earnings_growth = row_raw.get("earnings_growth")
+    if pd.notna(earnings_growth):
+        pct = earnings_growth * 100
+        if pct > 0:
+            parts.append(f"amb els beneficis creixent un {pct:.0f}%")
+        else:
+            parts.append(f"amb els beneficis caient un {abs(pct):.0f}%")
+
+    valuation = row_sub.get("valuation")
+    if pd.notna(valuation):
+        if valuation >= 60:
+            parts.append("cotitzant a un preu atractiu respecte a la resta de l'univers")
+        elif valuation <= 30:
+            parts.append("cotitzant cara respecte a la resta de l'univers")
+
+    rsi = row_raw.get("rsi_raw")
+    macd_hist = row_raw.get("macd_hist")
+    weak_points = []
+    if pd.notna(rsi) and rsi >= 70:
+        weak_points.append("està en zona de sobrecompra")
+    if pd.notna(macd_hist) and macd_hist < 0:
+        weak_points.append("el MACD encara mostra pèrdua de momentum")
+    if valuation is not None and pd.notna(valuation) and valuation <= 30:
+        weak_points.append("la valoració és el punt més feble")
+
+    sentence = ", ".join(parts) + "."
+    if weak_points:
+        sentence += " El punt més feble: " + " i ".join(weak_points) + "."
+    else:
+        sentence += " No hi ha cap senyal tècnic de deteriorament rellevant."
+
+    sentence += f" Compleix {checklist['passed']}/{checklist['total']} criteris de la checklist."
+
+    return sentence[0].upper() + sentence[1:]
+
+
 def risk_label(row) -> str:
     risk_score = row["risk"]
     if pd.isna(risk_score):
@@ -327,42 +454,69 @@ def load_history_files() -> list:
 
 
 def compute_evolution_metrics(ticker: str, history_files: list) -> dict:
-    """A partir de l'historial ja carregat, calcula per a un ticker:
-    - history_series: [{date, mid_term, rank_mid_term}] (fins a 30 dies)
+    """A partir de l'historial ja carregat (fins a 180 dies), calcula per a
+    un ticker:
+    - history_series: [{date, mid_term, rank}] truncat als últims 30 dies
+      (per al gràfic; l'historial complet es fa servir només pel càlcul
+      de "millor score del període")
     - days_in_top10: dies consecutius (comptant enrere des d'avui) al Top10
     - score_change_7d / rank_change_7d: comparat amb ~7 execucions enrere
+    - score_change_30d: comparat amb ~30 execucions enrere
+    - best_score_period / is_best_score_period: el millor score de mig
+      termini dels últims 180 dies, i si avui l'iguala o supera
     """
-    series = []
+    full_series = []
     for date_str, tickers_map in history_files:
         r = tickers_map.get(ticker)
         if r is not None:
-            series.append({
+            full_series.append({
                 "date": date_str,
                 "mid_term": r.get("scores", {}).get("mid_term"),
                 "rank": r.get("rank_mid_term"),
             })
 
+    series = full_series[-30:]  # només per al sparkline
+
     days_in_top10 = 0
-    for point in reversed(series):
+    for point in reversed(full_series):
         if point["rank"] is not None and point["rank"] <= 10:
             days_in_top10 += 1
         else:
             break
 
-    score_change_7d = None
-    rank_change_7d = None
-    if len(series) >= 8:  # avui + 7 execucions enrere
-        ref = series[-8]
-        if ref["mid_term"] is not None and series[-1]["mid_term"] is not None:
-            score_change_7d = round(series[-1]["mid_term"] - ref["mid_term"], 1)
-        if ref["rank"] is not None and series[-1]["rank"] is not None:
-            rank_change_7d = ref["rank"] - series[-1]["rank"]
+    def change_n_back(n_back: int):
+        if len(full_series) < n_back + 1:
+            return None, None
+        ref = full_series[-(n_back + 1)]
+        today_point = full_series[-1]
+        score_change = None
+        rank_change = None
+        if ref["mid_term"] is not None and today_point["mid_term"] is not None:
+            score_change = round(today_point["mid_term"] - ref["mid_term"], 1)
+        if ref["rank"] is not None and today_point["rank"] is not None:
+            rank_change = ref["rank"] - today_point["rank"]
+        return score_change, rank_change
+
+    score_change_7d, rank_change_7d = change_n_back(7)
+    score_change_30d, _ = change_n_back(30)
+
+    valid_scores = [p["mid_term"] for p in full_series if p["mid_term"] is not None]
+    best_score_period = max(valid_scores) if valid_scores else None
+    today_score = full_series[-1]["mid_term"] if full_series else None
+    is_best_score_period = (
+        best_score_period is not None
+        and today_score is not None
+        and today_score >= best_score_period
+    )
 
     return {
         "history_series": series,
         "days_in_top10": days_in_top10,
         "score_change_7d": score_change_7d,
         "rank_change_7d": rank_change_7d,
+        "score_change_30d": score_change_30d,
+        "best_score_period": best_score_period,
+        "is_best_score_period": is_best_score_period,
     }
 
 
@@ -384,10 +538,14 @@ def main():
     confidence = compute_confidence(df)
     horizons = horizon_scores(subscores)
 
+    previous = load_previous_scores()  # carregat abans per usar-lo també en checklist/canvis
+
     results = []
     for ticker in df.index:
         row_sub = subscores.loc[ticker]
         row_raw = df.loc[ticker]
+        checklist = build_checklist(row_sub, row_raw)
+        previous_result = previous.get(ticker) if previous else None
         results.append({
             "ticker": ticker,
             "region": row_raw.get("region"),
@@ -403,6 +561,9 @@ def main():
             "risk_label": risk_label(row_sub),
             "confidence_pct": float(confidence.loc[ticker]),
             "explanation": build_explanation(ticker, row_sub, row_raw),
+            "checklist": checklist,
+            "what_changed": build_what_changed(row_sub, previous_result),
+            "narrative": build_narrative(ticker, row_sub, row_raw, checklist),
         })
 
     # Rànquing: ordenem per defecte pel score a mig termini (el més equilibrat)
@@ -411,7 +572,6 @@ def main():
         r["rank_mid_term"] = i
 
     # Deltes respecte a l'última execució (per mostrar ▲/▼/🆕 a la PWA)
-    previous = load_previous_scores()
     top10_tickers_today = {r["ticker"] for r in results[:10]}
     for r in results:
         prev_r = previous.get(r["ticker"]) if previous else None
