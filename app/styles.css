@@ -400,6 +400,9 @@ body {
   font-size: 14px;
   z-index: 100;
 }
+.state-overlay[hidden] {
+  display: none !important;
+}
 
 .empty-note {
   color: var(--text-tertiary);
