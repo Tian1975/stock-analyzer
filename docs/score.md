@@ -43,6 +43,12 @@ vegades (ja queda reflectit a `confidence_pct`).
 - `confidence_pct`: % de mètriques disponibles (NO és una probabilitat real, és consens/completesa)
 - `explanation`: llista de frases generades per regles simples sobre valors reals
 - `rank_mid_term`: posició al rànquing (ordenat per `mid_term` per defecte)
+- `checklist`: 6 criteris deterministes (tendència, beneficis, qualitat, valoració, risc, no-sobrecompra), `passed`/`total`, i `semaforo` (verd ≥5/6, groc 3-4/6, vermell ≤2/6)
+- `what_changed`: llista de subscores que han canviat ≥3 punts respecte ahir (només canvis significatius)
+- `narrative`: paràgraf generat per plantilla (NO IA generativa lliure) que resumeix per què l'empresa té aquest score
+- `history_series`: fins a 30 punts per al gràfic (sparkline)
+- `days_in_top10`, `score_change_7d`, `score_change_30d`, `rank_change_7d`: evolució
+- `best_score_period` / `is_best_score_period`: millor score de mig termini dels últims 180 dies
 
 ## Estat del projecte
 
