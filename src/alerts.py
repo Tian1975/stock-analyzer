@@ -183,6 +183,17 @@ def send_web_push(alerts: list, issue_url: str | None):
 
     sent, failed = 0, 0
     for sub in subscriptions:
+        if isinstance(sub, str):
+            try:
+                sub = json.loads(sub)
+            except json.JSONDecodeError:
+                log.error(f"Subscripció ignorada: és un text, no un objecte JSON vàlid ({sub[:80]}...)")
+                failed += 1
+                continue
+        if not isinstance(sub, dict) or "endpoint" not in sub or "keys" not in sub:
+            log.error(f"Subscripció ignorada: falten camps 'endpoint'/'keys' ({sub})")
+            failed += 1
+            continue
         try:
             webpush(
                 subscription_info=sub,
@@ -194,6 +205,11 @@ def send_web_push(alerts: list, issue_url: str | None):
         except WebPushException as e:
             failed += 1
             log.error(f"Error enviant push: {e}")
+        except Exception as e:
+            # Subscripció corrupta (claus mal copiades, base64 invàlid, etc.):
+            # no ha de fer caure tot el job per una entrada dolenta.
+            failed += 1
+            log.error(f"Subscripció invàlida, s'ignora ({type(e).__name__}: {e})")
 
     log.info(f"Push enviat: {sent} correcte(s), {failed} fallit(s).")
 
