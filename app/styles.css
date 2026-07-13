@@ -495,6 +495,83 @@ body {
 }
 .broker-button:active { opacity: 0.85; }
 
+/* ---------- Narrativa "Per què està aquí" ---------- */
+.narrative-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 20px;
+}
+.narrative-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+.narrative-card p {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--text);
+}
+
+/* ---------- Què ha canviat ---------- */
+.what-changed-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.what-changed-list li {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.what-changed-list li.delta-up { color: var(--green); }
+.what-changed-list li.delta-down { color: var(--red); }
+
+/* ---------- Checklist / semàfor ---------- */
+.semaforo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.semaforo-badge {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 20px;
+}
+.semaforo-verd { background: rgba(52,199,89,0.15); color: var(--green); }
+.semaforo-groc { background: rgba(255,214,10,0.15); color: var(--amber); }
+.semaforo-vermell { background: rgba(255,65,54,0.15); color: var(--red); }
+.semaforo-count { font-size: 12px; color: var(--text-secondary); }
+.checklist-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.checklist-list li {
+  font-size: 13px;
+  padding: 6px 0;
+}
+.checklist-list li.check-ok { color: var(--text); }
+.checklist-list li.check-fail { color: var(--text-tertiary); }
+
 /* ---------- Estats de càrrega / error ---------- */
 .state-overlay {
   position: fixed;

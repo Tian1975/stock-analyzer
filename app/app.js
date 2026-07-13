@@ -346,6 +346,47 @@ function renderEvolutionBox(r) {
   `;
 }
 
+function renderNarrativeBox(r) {
+  if (!r.narrative) return "";
+  return `
+    <div class="narrative-card">
+      <div class="narrative-title">💬 Per què està aquí</div>
+      <p>${r.narrative}</p>
+    </div>
+  `;
+}
+
+function renderWhatChanged(r) {
+  if (!r.what_changed || r.what_changed.length === 0) return "";
+  const items = r.what_changed
+    .map((c) => {
+      const cls = c.indexOf("✔") === 0 ? "delta-up" : "delta-down";
+      return `<li class="${cls}">${c}</li>`;
+    })
+    .join("");
+  return `
+    <div class="section-title"><span>📊 Què ha canviat des d'ahir</span></div>
+    <ul class="what-changed-list">${items}</ul>
+  `;
+}
+
+function renderChecklist(r) {
+  if (!r.checklist) return "";
+  const semaforoIcon = r.checklist.semaforo === "verd" ? "🟢" : r.checklist.semaforo === "groc" ? "🟡" : "🔴";
+  const semaforoText = r.checklist.semaforo === "verd" ? "Comprar (a considerar)" : r.checklist.semaforo === "groc" ? "Esperar / vigilar" : "Revisar posició";
+  const items = r.checklist.items
+    .map((item) => `<li class="${item.ok ? "check-ok" : "check-fail"}">${item.ok ? "✔" : "✖"} ${item.label}</li>`)
+    .join("");
+  return `
+    <div class="section-title"><span>Estat de la tesi</span></div>
+    <div class="semaforo-row">
+      <span class="semaforo-badge semaforo-${r.checklist.semaforo}">${semaforoIcon} ${semaforoText}</span>
+      <span class="semaforo-count">${r.checklist.passed}/${r.checklist.total} criteris</span>
+    </div>
+    <ul class="checklist-list">${items}</ul>
+  `;
+}
+
 function renderDetail(ticker) {
   const r = SCORES.results.find((x) => x.ticker === ticker);
   if (!r) {
@@ -359,6 +400,9 @@ function renderDetail(ticker) {
   document.getElementById("detail-updated").textContent = `Dades del ${r.as_of || "—"}`;
 
   document.getElementById("evolution-box").innerHTML = renderEvolutionBox(r);
+  document.getElementById("narrative-box").innerHTML = renderNarrativeBox(r);
+  document.getElementById("what-changed-box").innerHTML = renderWhatChanged(r);
+  document.getElementById("checklist-box").innerHTML = renderChecklist(r);
 
   document.getElementById("detail-ring").outerHTML = renderRing(r.scores.mid_term, 128, 8)
     .replace('class="ring-wrap', 'id="detail-ring" class="ring-wrap ring-wrap--large');
