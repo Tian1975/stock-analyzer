@@ -2,11 +2,14 @@ name: Deploy PWA to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "app/**"
       - "data/scores.json"
-  workflow_dispatch: {}
+      - ".github/workflows/deploy_pages.yml"
+
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,24 +17,27 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages-deploy
-  cancel-in-progress: false
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
 
-      - name: Build site folder
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build site
         run: |
+          mkdir -p site
+          cp -R app/. site/
           mkdir -p site/data
-          cp -r app/* site/
-          cp data/scores.json site/data/scores.json
+          cp data/scores.json site/data/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -39,7 +45,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: ./site
 
       - name: Deploy to GitHub Pages
         id: deployment
