@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: daily-download
@@ -47,6 +48,12 @@ jobs:
       - name: Calculate scores
         run: |
           python src/score.py
+
+      - name: Check alerts
+        run: |
+          python src/alerts.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit updated data
         run: |
