@@ -24,6 +24,7 @@
     <header class="home-header">
       <div class="greeting" id="greeting">Bon dia 👋</div>
       <div class="freshness" id="freshness">Carregant...</div>
+      <button class="notif-button" id="btn-notifications">🔔 Activar notificacions</button>
     </header>
 
     <div class="search-bar" id="search-bar-home">
@@ -111,6 +112,19 @@
   <!-- ============ ESTAT: CARREGANT / ERROR ============ -->
   <div id="state-overlay" class="state-overlay" hidden>
     <div id="state-message">Carregant dades...</div>
+  </div>
+
+  <!-- ============ MODAL: SUBSCRIPCIÓ PUSH (setup d'un sol cop) ============ -->
+  <div id="push-modal" class="push-modal" hidden>
+    <div class="push-modal-content">
+      <h2>Activar notificacions</h2>
+      <p id="push-modal-text">Copia aquest text i enganxa'l al fitxer <code>config/push_subscriptions.json</code> del teu repo de GitHub (substitueix el contingut sencer per aquest, o afegeix-lo a la llista si ja n'hi ha d'altres).</p>
+      <textarea id="push-subscription-text" readonly></textarea>
+      <div class="push-modal-buttons">
+        <button id="btn-copy-subscription" class="link-button">📋 Copiar</button>
+        <button id="btn-close-push-modal" class="link-button">Tancar</button>
+      </div>
+    </div>
   </div>
 
 </div>

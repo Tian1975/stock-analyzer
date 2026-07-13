@@ -7,9 +7,59 @@
 const DATA_URL = "data/scores.json";
 const FAVORITES_KEY = "stock-analyzer:favorites";
 
+// Clau pública VAPID (no és secreta, es fa servir des del navegador).
+// La clau PRIVADA mai va aquí — viu només com a Secret de GitHub Actions.
+const VAPID_PUBLIC_KEY = "BPf9BSYp0Mxja31mFqL5M-hMKgOTgTZJOBR_fr3dgONhvIbHD0Nljc4LtSZ0TWySTB3KGEUe2f2S9eevujWLhBM";
+
 let SCORES = null; // contingut carregat de scores.json
 let CURRENT_HORIZON = "mid_term";
 let CURRENT_REGION = "all";
+
+// ---------- Web Push ----------
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function setupPushNotifications() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    alert("Aquest navegador no suporta notificacions push. A l'iPhone, cal tenir l'app afegida a la pantalla d'inici (Safari > Compartir > Afegir a la pantalla d'inici) i iOS 16.4 o superior.");
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    alert("Cal donar permís de notificacions per activar aquesta funció.");
+    return;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    showPushSubscriptionModal(subscription);
+  } catch (err) {
+    alert("No s'ha pogut activar la subscripció: " + err.message);
+  }
+}
+
+function showPushSubscriptionModal(subscription) {
+  const json = JSON.stringify(subscription.toJSON(), null, 2);
+  document.getElementById("push-subscription-text").value = json;
+  document.getElementById("push-modal").hidden = false;
+}
 
 // ---------- Utilitats ----------
 
@@ -386,6 +436,23 @@ function setupEventListeners() {
   document.getElementById("btn-back-from-ranking").addEventListener("click", () => navigateTo("home"));
   document.getElementById("btn-back-from-detail").addEventListener("click", () => {
     history.length > 1 ? history.back() : navigateTo("home");
+  });
+
+  document.getElementById("btn-notifications").addEventListener("click", setupPushNotifications);
+  document.getElementById("btn-close-push-modal").addEventListener("click", () => {
+    document.getElementById("push-modal").hidden = true;
+  });
+  document.getElementById("btn-copy-subscription").addEventListener("click", () => {
+    const textarea = document.getElementById("push-subscription-text");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textarea.value).catch(function () {
+        textarea.select();
+        document.execCommand("copy");
+      });
+    } else {
+      textarea.select();
+      document.execCommand("copy");
+    }
   });
 
   document.getElementById("search-input-home").addEventListener("input", (e) => {
