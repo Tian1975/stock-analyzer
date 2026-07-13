@@ -1,71 +1,77 @@
 # Stock Analyzer — v1.0.0
 
-Pipeline: `download.py` → `indicators.py` → `fundamentals.py` → `scoring.py` →
-`explanations.py` → `alerts.py` → PWA
+Anàlisi diària automàtica del mercat borsari amb rànquing multi-horitzó,
+100% gratuït, sense servidor ni base de dades.
+
+```
+GitHub Actions (cada dia, 20:00 UTC dl-dv)
+      │
+      ▼
+download.py       preus + fonamentals (Yahoo Finance) → data/raw/*.json
+      │
+      ▼
+indicators.py      SMA/EMA/RSI/MACD/ATR/volatilitat → data/indicators.json
+      │
+      ▼
+score.py            6 subscores + 3 horitzons + deltes → data/scores.json
+      │
+      ▼
+GitHub Pages         app/ + data/scores.json es desplega automàticament
+      │
+      ▼
+PWA (instal·lable a l'iPhone)
+```
 
 ## Project status
 
-- ✅ Download engine
-- ✅ Indicators
-- ✅ Scoring (fundamentals + technical combined)
-- ⬜ Alerts
-- ⬜ PWA
+- ✅ Download engine (79-80/80 tickers, validat amb dades reals)
+- ✅ Indicators (SMA/EMA/RSI/MACD/ATR/momentum/volatilitat)
+- ✅ Scoring (tècnic + fonamental, 6 subscores, 3 horitzons, deltes dia a dia)
+- ✅ PWA (inici amb favorits, rànquing filtrable, detall amb explicació)
+- ✅ Alertes Fase 1: GitHub Issues (favorits + descoberta global)
+- ✅ Historial 30 dies (evolució de score/rànquing, dies al Top10, sparkline)
+- ⬜ Alertes Fase 2: Web Push natiu a la PWA
 
-**Aquesta entrega conté només el primer mòdul: la descàrrega de dades.**
-Documentació detallada de cada mòdul a `docs/`.
+Documentació detallada de cada mòdul: `docs/download.md`, `docs/score.md`.
 
-## Novetats v0.3 (final)
+## Estructura del repo
 
-- `download_summary.json` ara inclou `git_commit`, `python_version`,
-  `yfinance_version`, `pandas_version` — traçabilitat per relacionar
-  incidències futures amb versions concretes.
-- Nou fitxer `data/sanity_report.json`: preus/fonamentals absents, tickers
-  duplicats, i rang de dates (`oldest_price_date` / `newest_price_date`) sense
-  haver d'obrir cap JSON individual.
+```
+stock-analyzer/
+├── .github/workflows/
+│   ├── daily_download.yml    descàrrega + indicadors + scores, cada dia
+│   └── deploy_pages.yml      publica app/ + scores.json a GitHub Pages
+├── src/
+│   ├── universe.py           80 tickers (EUA/Europa/Espanya)
+│   ├── config.py             paràmetres centralitzats
+│   ├── download.py           preus + fonamentals
+│   ├── indicators.py         indicadors tècnics
+│   └── score.py               motor de puntuació
+├── app/                      PWA (HTML/CSS/JS sense frameworks)
+├── data/                     generat automàticament, no editar a mà
+└── docs/                     documentació per mòdul
+```
 
-## Detalls tècnics anteriors
+## Posar-ho en marxa
 
-- `get_fundamentals()` retorna un **esquema intern propi** (camps en anglès
-  genèric: `long_name`, `pe_trailing`, etc.), no els noms crus de Yahoo. Si
-  demà canviem de proveïdor, només es toca el mapeig dins d'aquesta funció.
-- Validació de preus explícita i completa: ordre cronològic, sense NaN,
-  longituds coherents, preus estrictament positius, volum no negatiu.
-- Logging (`logging` en comptes de `print`) amb nivells INFO/WARNING/ERROR,
-  llegible directament als logs de GitHub Actions.
-- `download_summary.json` inclou `success_rate_pct` i `tickers_failed` amb
-  motiu de cada fallada.
-- Workflow: `git pull --rebase origin main || true` ABANS del commit (evita
-  conflictes si el repo canvia durant l'execució).
+1. **Repo**: puja tot el contingut a un repo de GitHub (privat o públic)
+2. **Descàrrega diària**: comprova a "Actions" que `daily_download.yml`
+   s'executa correctament (`workflow_dispatch` per provar-ho manualment)
+3. **PWA**: a "Settings → Pages" → "Source" tria **GitHub Actions**
+   (no "Deploy from a branch"). El workflow `deploy_pages.yml` farà la resta.
+4. La PWA quedarà a `https://<usuari>.github.io/stock-analyzer/`
 
-## Pla de validació abans de continuar (recomanat)
+> ⚠️ Fitxers que comencen per punt (`.github/...`, `.gitignore`) no es veuen
+> ni s'extreuen bé des de l'app Fitxers d'iOS. Si puges des de l'iPhone,
+> crea'ls manualment des de la web de GitHub amb el nom complet.
 
-Abans de començar `indicators.py`:
-1. Executa el workflow manualment 3-5 vegades (`workflow_dispatch`)
-2. Revisa `data/download_summary.json` cada vegada
-3. Confirma quins tickers fallen de manera recurrent (no puntual)
-4. Objectiu: **>95% d'èxit consistent** abans de construir la resta del pipeline
+## Notes de manteniment
 
-## Com pujar-ho a GitHub
-
-1. Crea un repo nou (privat o públic, com prefereixis) a github.com
-2. Al teu ordinador o des de GitHub web, puja tot el contingut d'aquesta carpeta
-   (`stock-analyzer/`) mantenint l'estructura de carpetes intacta
-3. Ves a la pestanya **Actions** del repo → hauries de veure el workflow
-   "Descàrrega diària de dades"
-4. Fes clic a **Run workflow** (botó manual, gràcies a `workflow_dispatch`) per
-   provar-ho ara mateix sense esperar al cron diari
-5. Quan acabi (uns 2-3 minuts per 80 tickers), revisa:
-   - `data/download_summary.json` → veuràs quants tickers han anat bé
-   - `data/raw/*.json` → un fitxer per ticker amb preus + fonamentals
-
-## Si algun ticker falla
-
-És normal que 1-2 dels 80 fallin puntualment (Yahoo Finance canvia dades
-fonamentals sovint). El resum et dirà quins i per què. Si un ticker falla
-sistemàticament, cal revisar si el símbol és correcte.
-
-## Següent pas
-
-Un cop confirmat que `data/raw/*.json` es genera correctament, seguim amb
-`indicators.py` (mitjanes mòbils, RSI, MACD, ATR) i `fundamentals.py`
-(normalització dels ràtios ja descarregats).
+- **`ROG.SW` (o qualsevol ticker puntual)**: si falla de forma aïllada, és
+  normal (Yahoo Finance). Si falla sistemàticament diversos dies seguits,
+  buscar un símbol alternatiu a `src/universe.py`.
+- **`success_rate_pct` < 90%**: el job de descàrrega falla expressament
+  (`sys.exit(1)`) per evitar processar dades incompletes silenciosament.
+- **Barrejar mercats en un bulk download**: cal fer sempre `dropna()` per
+  ticker abans de validar (festius locals ≠ dades corruptes) — ja resolt a
+  `download.py`, documentat a `docs/download.md`.
