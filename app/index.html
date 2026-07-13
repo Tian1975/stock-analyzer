@@ -105,6 +105,11 @@
       <span class="confidence-note" id="detail-confidence">—</span>
     </div>
 
+    <a href="#" id="btn-broker-link" class="broker-button" target="_blank" rel="noopener">
+      📈 Veure cotització i operar →
+    </a>
+    <button class="link-button" id="btn-configure-broker">⚙️ Configurar el meu broker</button>
+
     <div class="section-title"><span>Per què aquesta puntuació</span></div>
     <ul class="explanation-list" id="detail-explanation"></ul>
   </section>
@@ -123,6 +128,20 @@
       <div class="push-modal-buttons">
         <button id="btn-copy-subscription" class="link-button">📋 Copiar</button>
         <button id="btn-close-push-modal" class="link-button">Tancar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: CONFIGURAR BROKER ============ -->
+  <div id="broker-modal" class="push-modal" hidden>
+    <div class="push-modal-content">
+      <h2>Configurar el meu broker</h2>
+      <p>Enganxa aquí la URL de cerca del teu broker, posant <code>{TICKER}</code> allà on aniria el símbol de l'empresa. Per exemple: <code>https://www.exemple.com/cerca?q={TICKER}</code></p>
+      <p>Si ho deixes en blanc, el botó et portarà a Yahoo Finance (només informatiu, sense poder comprar/vendre).</p>
+      <textarea id="broker-url-input" placeholder="https://www.el-teu-broker.com/cerca?q={TICKER}" style="height:80px"></textarea>
+      <div class="push-modal-buttons">
+        <button id="btn-save-broker" class="link-button">💾 Desar</button>
+        <button id="btn-close-broker-modal" class="link-button">Tancar</button>
       </div>
     </div>
   </div>

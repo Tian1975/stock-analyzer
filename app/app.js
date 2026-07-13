@@ -6,6 +6,8 @@
 
 const DATA_URL = "data/scores.json";
 const FAVORITES_KEY = "stock-analyzer:favorites";
+const BROKER_URL_KEY = "stock-analyzer:broker-url-template";
+const DEFAULT_BROKER_TEMPLATE = "https://finance.yahoo.com/quote/{TICKER}";
 
 // Clau pública VAPID (no és secreta, es fa servir des del navegador).
 // La clau PRIVADA mai va aquí — viu només com a Secret de GitHub Actions.
@@ -59,6 +61,24 @@ function showPushSubscriptionModal(subscription) {
   const json = JSON.stringify(subscription.toJSON(), null, 2);
   document.getElementById("push-subscription-text").value = json;
   document.getElementById("push-modal").hidden = false;
+}
+
+function getBrokerTemplate() {
+  return localStorage.getItem(BROKER_URL_KEY) || DEFAULT_BROKER_TEMPLATE;
+}
+
+function saveBrokerTemplate(template) {
+  const clean = template.trim();
+  if (clean) {
+    localStorage.setItem(BROKER_URL_KEY, clean);
+  } else {
+    localStorage.removeItem(BROKER_URL_KEY);
+  }
+}
+
+function buildBrokerUrl(ticker) {
+  const template = getBrokerTemplate();
+  return template.replace("{TICKER}", encodeURIComponent(ticker));
 }
 
 // ---------- Utilitats ----------
@@ -388,6 +408,8 @@ function renderDetail(ticker) {
 
   document.getElementById("detail-risk").textContent = `Risc: ${r.risk_label}`;
   document.getElementById("detail-risk").className = `risk-chip risk-chip--${r.risk_label}`;
+
+  document.getElementById("btn-broker-link").href = buildBrokerUrl(r.ticker);
   document.getElementById("detail-confidence").textContent = `Confiança de dades: ${r.confidence_pct}%`;
 
   const explEl = document.getElementById("detail-explanation");
@@ -453,6 +475,21 @@ function setupEventListeners() {
       textarea.select();
       document.execCommand("copy");
     }
+  });
+
+  document.getElementById("btn-configure-broker").addEventListener("click", () => {
+    const current = localStorage.getItem(BROKER_URL_KEY) || "";
+    document.getElementById("broker-url-input").value = current;
+    document.getElementById("broker-modal").hidden = false;
+  });
+  document.getElementById("btn-close-broker-modal").addEventListener("click", () => {
+    document.getElementById("broker-modal").hidden = true;
+  });
+  document.getElementById("btn-save-broker").addEventListener("click", () => {
+    const value = document.getElementById("broker-url-input").value;
+    saveBrokerTemplate(value);
+    document.getElementById("broker-modal").hidden = true;
+    alert("Configuració desada.");
   });
 
   document.getElementById("search-input-home").addEventListener("input", (e) => {

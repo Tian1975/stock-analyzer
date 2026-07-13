@@ -480,6 +480,21 @@ body {
   font-size: 14px;
 }
 
+.broker-button {
+  display: block;
+  text-align: center;
+  background: var(--gold);
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 15px;
+  padding: 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  margin-top: 8px;
+}
+.broker-button:active { opacity: 0.85; }
+
 /* ---------- Estats de càrrega / error ---------- */
 .state-overlay {
   position: fixed;
