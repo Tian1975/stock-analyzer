@@ -157,6 +157,23 @@ decidir; no cal fer-ho ara mateix.
 
 ---
 
+## 6bis. El botó "🤖 Analitzar amb IA"
+
+A cada fitxa d'empresa hi ha un botó daurat que et porta a `claude.ai` amb
+un resum complet de l'empresa (score, subscores, checklist, explicació,
+"què vigilar") ja copiat al porta-retalls.
+
+**Com fer-ho servir:**
+1. Toca "🤖 Analitzar amb IA →"
+2. S'obre `claude.ai` en una pestanya nova
+3. Enganxa el text (ja el tens copiat)
+4. Pregunta el que vulguis — per exemple "Quines preguntes hauria de fer-me
+   abans de considerar aquesta empresa?"
+
+Això **no envia res automàticament** ni es connecta a cap API — només
+prepara el text i t'obre la conversa perquè hi enganxis tu mateix. Zero
+cost afegit, funciona sempre.
+
 ## 7. Les alertes: què vol dir cadascuna i què hauries de fer
 
 L'app et pot avisar de dues maneres (Issues de GitHub i notificacions

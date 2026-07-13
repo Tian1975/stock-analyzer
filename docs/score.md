@@ -45,7 +45,14 @@ vegades (ja queda reflectit a `confidence_pct`).
 - `rank_mid_term`: posició al rànquing (ordenat per `mid_term` per defecte)
 - `checklist`: 6 criteris deterministes (tendència, beneficis, qualitat, valoració, risc, no-sobrecompra), `passed`/`total`, i `semaforo` (verd ≥5/6, groc 3-4/6, vermell ≤2/6)
 - `what_changed`: llista de subscores que han canviat ≥3 punts respecte ahir (només canvis significatius)
-- `narrative`: paràgraf generat per plantilla (NO IA generativa lliure) que resumeix per què l'empresa té aquest score
+- `narrative`: paràgraf generat per plantilla (NO IA generativa lliure) que resumeix per què l'empresa té aquest score, ponderat pel semàfor (no només la posició al rànquing)
+- `watch_list`: condicions actualment favorables que, si es giressin, deteriorarien la tesi (ex. "Que el RSI superi 70")
+- `change_timeline`: historial de canvis dia a dia (fins a 7 dies enrere), reconstruït comparant snapshots consecutius
+- `recommendation_line`: frase curta d'estat de la tesi (🟢/🟡/🔴) — NO és un consell de compra/venda personalitzat
+
+## Camp de sortida a nivell d'univers
+
+- `universe_daily_summary`: llista dels esdeveniments més rellevants del dia a tot l'univers (entrades al Top10, grans salts de rànquing, grans canvis de score) — un sol esdeveniment per ticker, els més significatius
 - `history_series`: fins a 30 punts per al gràfic (sparkline)
 - `days_in_top10`, `score_change_7d`, `score_change_30d`, `rank_change_7d`: evolució
 - `best_score_period` / `is_best_score_period`: millor score de mig termini dels últims 180 dies
