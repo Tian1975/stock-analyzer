@@ -23,3 +23,6 @@ ALERT_SCORE_DROP_ALERT = 10.0  # 🔴 "canvi important, revisa-la"
 ALERT_RSI_OVERBOUGHT = 70
 ALERT_RSI_OVERSOLD = 30
 ALERT_MIN_CONFIDENCE_PCT = 90.0
+
+# Retenció de l'historial diari de scores (per evolució i "dies al Top10")
+HISTORY_RETENTION_DAYS = 30

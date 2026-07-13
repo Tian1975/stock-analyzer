@@ -28,11 +28,13 @@ Pesos per horitzó:
 """
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+from config import HISTORY_RETENTION_DAYS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,6 +47,7 @@ BASE_DIR = Path(__file__).parent.parent
 RAW_DIR = BASE_DIR / "data" / "raw"
 INDICATORS_PATH = BASE_DIR / "data" / "indicators.json"
 OUTPUT_PATH = BASE_DIR / "data" / "scores.json"
+HISTORY_DIR = BASE_DIR / "data" / "history" / "scores"
 
 HORIZON_WEIGHTS = {
     "short_term": {"momentum": 0.70, "trend": 0.20, "risk": 0.10},
@@ -278,6 +281,98 @@ def build_explanation(ticker: str, row: pd.Series, raw: pd.Series) -> list[str]:
     return lines
 
 
+def load_previous_scores() -> dict | None:
+    """Carrega l'últim scores.json històric anterior a avui (si n'hi ha) per
+    calcular deltes de rànquing i puntuació. Retorna None si és la primera
+    execució o no hi ha historial encara."""
+    if not HISTORY_DIR.exists():
+        return None
+    files = sorted(HISTORY_DIR.glob("*.json"))
+    if not files:
+        return None
+    with open(files[-1], encoding="utf-8") as f:
+        prev = json.load(f)
+    return {r["ticker"]: r for r in prev.get("results", [])}
+
+
+def prune_old_history():
+    """Esborra snapshots de fa més de HISTORY_RETENTION_DAYS dies perquè el
+    repo no creixi indefinidament."""
+    if not HISTORY_DIR.exists():
+        return
+    cutoff = datetime.now(timezone.utc) - timedelta(days=HISTORY_RETENTION_DAYS)
+    for path in HISTORY_DIR.glob("*.json"):
+        try:
+            file_date = datetime.strptime(path.stem, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        if file_date < cutoff:
+            path.unlink()
+            log.info(f"Historial podat: {path.name} (fora de la finestra de {HISTORY_RETENTION_DAYS} dies)")
+
+
+def load_history_files() -> list:
+    """Carrega tots els snapshots d'historial disponibles (ordenats per
+    data), ja podats a la finestra de retenció."""
+    if not HISTORY_DIR.exists():
+        return []
+    files = sorted(HISTORY_DIR.glob("*.json"))
+    loaded = []
+    for path in files:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        date_str = path.stem
+        loaded.append((date_str, {r["ticker"]: r for r in data.get("results", [])}))
+    return loaded
+
+
+def compute_evolution_metrics(ticker: str, history_files: list) -> dict:
+    """A partir de l'historial ja carregat, calcula per a un ticker:
+    - history_series: [{date, mid_term, rank_mid_term}] (fins a 30 dies)
+    - days_in_top10: dies consecutius (comptant enrere des d'avui) al Top10
+    - score_change_7d / rank_change_7d: comparat amb ~7 execucions enrere
+    """
+    series = []
+    for date_str, tickers_map in history_files:
+        r = tickers_map.get(ticker)
+        if r is not None:
+            series.append({
+                "date": date_str,
+                "mid_term": r.get("scores", {}).get("mid_term"),
+                "rank": r.get("rank_mid_term"),
+            })
+
+    days_in_top10 = 0
+    for point in reversed(series):
+        if point["rank"] is not None and point["rank"] <= 10:
+            days_in_top10 += 1
+        else:
+            break
+
+    score_change_7d = None
+    rank_change_7d = None
+    if len(series) >= 8:  # avui + 7 execucions enrere
+        ref = series[-8]
+        if ref["mid_term"] is not None and series[-1]["mid_term"] is not None:
+            score_change_7d = round(series[-1]["mid_term"] - ref["mid_term"], 1)
+        if ref["rank"] is not None and series[-1]["rank"] is not None:
+            rank_change_7d = ref["rank"] - series[-1]["rank"]
+
+    return {
+        "history_series": series,
+        "days_in_top10": days_in_top10,
+        "score_change_7d": score_change_7d,
+        "rank_change_7d": rank_change_7d,
+    }
+
+
+def save_history_snapshot(output: dict):
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    with open(HISTORY_DIR / f"{today}.json", "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False)
+
+
 def main():
     start = datetime.now(timezone.utc)
     log.info("Carregant indicadors i fonamentals...")
@@ -315,17 +410,56 @@ def main():
     for i, r in enumerate(results, 1):
         r["rank_mid_term"] = i
 
+    # Deltes respecte a l'última execució (per mostrar ▲/▼/🆕 a la PWA)
+    previous = load_previous_scores()
+    top10_tickers_today = {r["ticker"] for r in results[:10]}
+    for r in results:
+        prev_r = previous.get(r["ticker"]) if previous else None
+        if prev_r is None:
+            r["rank_change"] = None
+            r["score_change_mid_term"] = None
+            r["is_new_entry"] = True
+        else:
+            prev_rank = prev_r.get("rank_mid_term")
+            prev_score = prev_r.get("scores", {}).get("mid_term")
+            r["rank_change"] = (
+                (prev_rank - r["rank_mid_term"]) if prev_rank is not None else None
+            )
+            r["score_change_mid_term"] = (
+                round(r["scores"]["mid_term"] - prev_score, 1)
+                if (prev_score is not None and r["scores"]["mid_term"] is not None)
+                else None
+            )
+            r["is_new_entry"] = False
+        prev_top10 = (
+            {t for t, v in previous.items() if v.get("rank_mid_term", 999) <= 10}
+            if previous else set()
+        )
+        r["is_new_top10"] = r["ticker"] in top10_tickers_today and r["ticker"] not in prev_top10
+
+    # Evolució (historial 30 dies): poda l'historial vell, carrega el que queda,
+    # hi afegim el snapshot d'avui (encara no desat a disc) i calculem mètriques.
+    prune_old_history()
+    history_files = load_history_files()
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    history_files.append((today_str, {r["ticker"]: r for r in results}))
+    for r in results:
+        r.update(compute_evolution_metrics(r["ticker"], history_files))
+
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "duration_seconds": round((datetime.now(timezone.utc) - start).total_seconds(), 2),
         "universe_size": len(results),
         "horizon_weights": HORIZON_WEIGHTS,
+        "history_retention_days": HISTORY_RETENTION_DAYS,
         "results": results,
     }
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=None)
+
+    save_history_snapshot(output)
 
     log.info(f"Fet: {len(results)} tickers puntuats -> {OUTPUT_PATH}")
 
