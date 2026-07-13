@@ -232,8 +232,8 @@ def horizon_scores(subscores: pd.DataFrame) -> pd.DataFrame:
 
 
 CHECKLIST_CRITERIA = [
-    "trend_intact", "earnings_growing", "quality_solid",
-    "valuation_attractive", "risk_controlled", "not_overbought",
+    "trend_intact", "earnings_growing", "valuation_attractive",
+    "quality_solid", "risk_controlled", "not_overbought",
 ]
 CHECKLIST_LABELS = {
     "trend_intact": "Tendència intacta (SMA20>SMA50>SMA200)",
@@ -308,54 +308,157 @@ def build_what_changed(row_sub: pd.Series, previous_result: dict | None) -> list
     return changes
 
 
-def build_narrative(ticker: str, row_sub: pd.Series, row_raw: pd.Series, checklist: dict) -> str:
+def build_change_timeline(ticker: str, history_files: list, max_days: int = 7) -> list:
+    """Reconstrueix un historial de canvis dia a dia (fins a max_days enrere)
+    comparant cada snapshot amb l'anterior. Determinista, a partir de dades
+    ja guardades — no calcula res nou, només diferències."""
+    labels = {
+        "momentum": "Momentum", "trend": "Tendència", "valuation": "Valoració",
+        "quality": "Qualitat", "growth": "Creixement", "risk": "Risc",
+    }
+    timeline = []
+    n = len(history_files)
+    start_idx = max(1, n - max_days)
+
+    for i in range(n - 1, start_idx - 1, -1):
+        date_str, today_map = history_files[i]
+        prev_date, prev_map = history_files[i - 1]
+        today_r = today_map.get(ticker)
+        prev_r = prev_map.get(ticker)
+        if today_r is None:
+            continue
+
+        changes = []
+        if prev_r is None:
+            changes.append("🆕 Comença a seguir-se")
+        else:
+            today_score = today_r.get("scores", {}).get("mid_term")
+            prev_score = prev_r.get("scores", {}).get("mid_term")
+            if today_score is not None and prev_score is not None:
+                delta = round(today_score - prev_score, 1)
+                if abs(delta) >= 1:
+                    arrow = "▲" if delta > 0 else "▼"
+                    sign = "+" if delta > 0 else ""
+                    changes.append(f"{arrow} Score {sign}{delta}")
+
+            today_sub = today_r.get("subscores", {})
+            prev_sub = prev_r.get("subscores", {})
+            for key, label in labels.items():
+                tv, pv = today_sub.get(key), prev_sub.get(key)
+                if tv is None or pv is None:
+                    continue
+                d = round(tv - pv, 1)
+                if abs(d) >= 3:
+                    arrow = "▲" if d > 0 else "▼"
+                    sign = "+" if d > 0 else ""
+                    changes.append(f"{arrow} {label} {sign}{d:.0f}")
+
+            today_rank = today_r.get("rank_mid_term")
+            prev_rank = prev_r.get("rank_mid_term")
+            if today_rank is not None and prev_rank is not None:
+                if today_rank <= 10 and prev_rank > 10:
+                    changes.append("🔥 Entra al Top 10")
+                elif today_rank > 10 and prev_rank <= 10:
+                    changes.append("📉 Surt del Top 10")
+
+        if changes:
+            timeline.append({"date": date_str, "changes": changes})
+
+    return timeline
+
+
+def build_recommendation_line(checklist: dict, row_sub: pd.Series) -> str:
+    """Frase curta d'estat de la tesi (NO és un consell de compra/venda
+    personalitzat, és un resum determinista del semàfor)."""
+    semaforo = checklist["semaforo"]
+    valuation = row_sub.get("valuation")
+    if semaforo == "verd":
+        if pd.notna(valuation) and valuation <= 30:
+            return "🟢 No hi ha cap senyal que invalidi la tesi, però la valoració és exigent."
+        return "🟢 No hi ha cap senyal que invalidi la tesi ara mateix."
+    elif semaforo == "groc":
+        return "🟡 La tesi es manté, però convé vigilar-la de prop."
+    else:
+        return "🔴 La tesi s'està deteriorant. Revisa-la abans d'ampliar posició."
+
+
+def build_narrative(ticker: str, row_sub: pd.Series, row_raw: pd.Series, checklist: dict, rank: int) -> str:
     """Paràgraf explicatiu generat per plantilla a partir de valors reals
     — NO és text generat per IA, és concatenació de frases fixes segons
     condicions numèriques ja calculades."""
-    parts = [f"{ticker}"]
-
     trend_alignment = row_raw.get("trend_alignment")
-    if trend_alignment == 3:
-        parts.append("manté una tendència alcista alineada (SMA20>SMA50>SMA200)")
-    elif trend_alignment == 0:
-        parts.append("mostra una tendència baixista")
-    else:
-        parts.append("té una tendència mixta")
-
     earnings_growth = row_raw.get("earnings_growth")
+    valuation = row_sub.get("valuation")
+    pe = row_raw.get("pe_trailing")
+    rsi = row_raw.get("rsi_raw")
+    macd_hist = row_raw.get("macd_hist")
+
+    # --- Obertura: posició dins l'univers, ponderada per la qualitat (semàfor) ---
+    semaforo = checklist["semaforo"]
+    if rank <= 10 and semaforo == "verd":
+        if rank <= 3:
+            opening = f"{ticker} és una de les millors opcions de tot l'univers ara mateix"
+        else:
+            opening = f"{ticker} continua entre les millors oportunitats de l'univers"
+    elif semaforo == "verd":
+        opening = f"{ticker} manté una tesi sòlida encara que no destaqui al capdamunt del rànquing"
+    elif semaforo == "vermell":
+        opening = f"{ticker} falla la majoria de criteris de la tesi ara mateix"
+    else:
+        opening = f"{ticker} té un perfil mixt, amb llums i ombres"
+
+    # --- Motiu principal (tendència + creixement) ---
+    reasons = []
+    if trend_alignment == 3:
+        reasons.append("la tendència continua sent molt forta")
+    elif trend_alignment == 0:
+        reasons.append("la tendència s'ha girat baixista")
     if pd.notna(earnings_growth):
         pct = earnings_growth * 100
         if pct > 0:
-            parts.append(f"amb els beneficis creixent un {pct:.0f}%")
+            reasons.append(f"els beneficis creixen un {pct:.0f}%")
         else:
-            parts.append(f"amb els beneficis caient un {abs(pct):.0f}%")
+            reasons.append(f"els beneficis cauen un {abs(pct):.0f}%")
 
-    valuation = row_sub.get("valuation")
-    if pd.notna(valuation):
-        if valuation >= 60:
-            parts.append("cotitzant a un preu atractiu respecte a la resta de l'univers")
-        elif valuation <= 30:
-            parts.append("cotitzant cara respecte a la resta de l'univers")
+    reason_text = " i ".join(reasons) if reasons else "els indicadors tècnics es mantenen estables"
 
-    rsi = row_raw.get("rsi_raw")
-    macd_hist = row_raw.get("macd_hist")
-    weak_points = []
-    if pd.notna(rsi) and rsi >= 70:
-        weak_points.append("està en zona de sobrecompra")
-    if pd.notna(macd_hist) and macd_hist < 0:
-        weak_points.append("el MACD encara mostra pèrdua de momentum")
-    if valuation is not None and pd.notna(valuation) and valuation <= 30:
-        weak_points.append("la valoració és el punt més feble")
+    # --- Principal inconvenient (un de sol, el més rellevant) ---
+    drawback = None
+    if pd.notna(valuation) and valuation <= 30 and pd.notna(pe):
+        drawback = f"una valoració exigent (PER {pe:.0f})"
+    elif pd.notna(rsi) and rsi >= 70:
+        drawback = "està en zona de sobrecompra"
+    elif pd.notna(macd_hist) and macd_hist < 0:
+        drawback = "el MACD encara mostra pèrdua de momentum"
 
-    sentence = ", ".join(parts) + "."
-    if weak_points:
-        sentence += " El punt més feble: " + " i ".join(weak_points) + "."
-    else:
-        sentence += " No hi ha cap senyal tècnic de deteriorament rellevant."
-
-    sentence += f" Compleix {checklist['passed']}/{checklist['total']} criteris de la checklist."
+    sentence = f"{opening} perquè {reason_text}."
+    if drawback:
+        sentence += f" El principal inconvenient és {drawback}."
+    sentence += f" Compleix {checklist['passed']} de {checklist['total']} criteris de la tesi."
 
     return sentence[0].upper() + sentence[1:]
+
+
+def build_watch_list(row_sub: pd.Series, row_raw: pd.Series, mid_term_score, semaforo: str) -> list:
+    """Genera la llista de "què vigilar": condicions actualment favorables
+    que, si es giressin, deteriorarien la tesi. Determinista, no IA."""
+    items = []
+    trend_alignment = row_raw.get("trend_alignment")
+    rsi = row_raw.get("rsi_raw")
+    macd_hist = row_raw.get("macd_hist")
+
+    if trend_alignment == 3:
+        items.append("Que trenqui la tendència (preu per sota de SMA50)")
+    if pd.notna(rsi) and rsi < 70:
+        items.append(f"Que el RSI superi 70 (ara és {rsi:.0f})")
+    if pd.notna(macd_hist) and macd_hist > 0:
+        items.append("Que el MACD es torni negatiu")
+    if mid_term_score is not None and semaforo in ("verd", "groc"):
+        threshold = 66 if semaforo == "verd" else 40
+        if mid_term_score > threshold:
+            items.append(f"Que el score de mig termini baixi de {threshold}")
+
+    return items
 
 
 def risk_label(row) -> str:
@@ -527,6 +630,36 @@ def save_history_snapshot(output: dict):
         json.dump(output, f, ensure_ascii=False)
 
 
+def build_universe_daily_summary(results: list, max_events: int = 8) -> list:
+    """Resum d'esdeveniments rellevants a nivell de tot l'univers (per a la
+    pantalla d'inici): entrades al Top10, grans salts de rànquing, grans
+    canvis de score. Un sol esdeveniment per ticker (el més significatiu)."""
+    best_per_ticker = {}
+
+    def consider(ticker, weight, text):
+        if ticker not in best_per_ticker or weight > best_per_ticker[ticker][0]:
+            best_per_ticker[ticker] = (weight, text)
+
+    for r in results:
+        ticker = r["ticker"]
+        if r.get("is_new_top10"):
+            consider(ticker, 100, f"🔥 **{ticker}** entra al Top 10")
+
+        rc = r.get("rank_change")
+        if rc is not None and abs(rc) >= 10:
+            arrow = "▲" if rc > 0 else "▼"
+            verb = "puja" if rc > 0 else "baixa"
+            consider(ticker, abs(rc), f"{arrow} **{ticker}** {verb} {abs(rc)} posicions")
+
+        sc = r.get("score_change_mid_term")
+        if sc is not None and abs(sc) >= 8:
+            arrow = "▲" if sc > 0 else "▼"
+            consider(ticker, abs(sc) * 2, f"{arrow} **{ticker}** score {'+' if sc > 0 else ''}{sc:.1f}")
+
+    ranked = sorted(best_per_ticker.values(), key=lambda x: -x[0])
+    return [text for _, text in ranked[:max_events]]
+
+
 def main():
     start = datetime.now(timezone.utc)
     log.info("Carregant indicadors i fonamentals...")
@@ -541,9 +674,13 @@ def main():
     previous = load_previous_scores()  # carregat abans per usar-lo també en checklist/canvis
 
     results = []
+    raw_lookup = {}
+    sub_lookup = {}
     for ticker in df.index:
         row_sub = subscores.loc[ticker]
         row_raw = df.loc[ticker]
+        raw_lookup[ticker] = row_raw
+        sub_lookup[ticker] = row_sub
         checklist = build_checklist(row_sub, row_raw)
         previous_result = previous.get(ticker) if previous else None
         results.append({
@@ -563,13 +700,23 @@ def main():
             "explanation": build_explanation(ticker, row_sub, row_raw),
             "checklist": checklist,
             "what_changed": build_what_changed(row_sub, previous_result),
-            "narrative": build_narrative(ticker, row_sub, row_raw, checklist),
         })
 
     # Rànquing: ordenem per defecte pel score a mig termini (el més equilibrat)
     results.sort(key=lambda r: (r["scores"]["mid_term"] is None, -(r["scores"]["mid_term"] or 0)))
     for i, r in enumerate(results, 1):
         r["rank_mid_term"] = i
+
+    # Narrativa i "què vigilar": necessiten el rànquing final, per això es
+    # calculen en un segon pas (després d'ordenar).
+    for r in results:
+        ticker = r["ticker"]
+        r["narrative"] = build_narrative(
+            ticker, sub_lookup[ticker], raw_lookup[ticker], r["checklist"], r["rank_mid_term"]
+        )
+        r["watch_list"] = build_watch_list(
+            sub_lookup[ticker], raw_lookup[ticker], r["scores"]["mid_term"], r["checklist"]["semaforo"]
+        )
 
     # Deltes respecte a l'última execució (per mostrar ▲/▼/🆕 a la PWA)
     top10_tickers_today = {r["ticker"] for r in results[:10]}
@@ -605,6 +752,10 @@ def main():
     history_files.append((today_str, {r["ticker"]: r for r in results}))
     for r in results:
         r.update(compute_evolution_metrics(r["ticker"], history_files))
+        r["change_timeline"] = build_change_timeline(r["ticker"], history_files)
+        r["recommendation_line"] = build_recommendation_line(r["checklist"], sub_lookup[r["ticker"]])
+
+    universe_daily_summary = build_universe_daily_summary(results)
 
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -612,6 +763,7 @@ def main():
         "universe_size": len(results),
         "horizon_weights": HORIZON_WEIGHTS,
         "history_retention_days": HISTORY_RETENTION_DAYS,
+        "universe_daily_summary": universe_daily_summary,
         "results": results,
     }
 
