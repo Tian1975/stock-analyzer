@@ -23,6 +23,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Sync with remote before generating data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -49,6 +55,14 @@ jobs:
         run: |
           python src/score.py
 
+      - name: Verify history was written
+        run: |
+          echo "Contingut de data/history/scores/:"
+          ls -la data/history/scores/ || echo "⚠️ La carpeta no existeix encara"
+          echo ""
+          echo "Fitxers de data/history/ (recursiu):"
+          find data/history -type f | sort
+
       - name: Check alerts
         run: |
           python src/alerts.py
@@ -59,13 +73,8 @@ jobs:
 
       - name: Commit updated data
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git pull --rebase origin main || true
-
-          git add data/
-
+          git add -A data/
+          git status
           git diff --cached --quiet || git commit -m "Automatic daily data update"
 
       - name: Push changes
