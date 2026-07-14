@@ -1,0 +1,82 @@
+name: Daily Stock Download
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Dilluns a divendres a les 20:00 UTC
+    - cron: "0 20 * * 1-5"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: daily-download
+  cancel-in-progress: true
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Sync with remote before generating data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify source code
+        run: |
+          python -m compileall src
+
+      - name: Run downloader
+        run: |
+          python src/download.py
+
+      - name: Calculate indicators
+        run: |
+          python src/indicators.py
+
+      - name: Calculate scores
+        run: |
+          python src/score.py
+
+      - name: Verify history was written
+        run: |
+          echo "Contingut de data/history/scores/:"
+          ls -la data/history/scores/ || echo "⚠️ La carpeta no existeix encara"
+          echo ""
+          echo "Fitxers de data/history/ (recursiu):"
+          find data/history -type f | sort
+
+      - name: Check alerts
+        run: |
+          python src/alerts.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_CLAIMS_EMAIL: ${{ secrets.VAPID_CLAIMS_EMAIL }}
+
+      - name: Commit updated data
+        run: |
+          git add -A data/
+          git status
+          git diff --cached --quiet || git commit -m "Automatic daily data update"
+
+      - name: Push changes
+        run: |
+          git push origin main
