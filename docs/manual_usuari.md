@@ -8,7 +8,8 @@ clara, és culpa del manual, no teva.
 
 ## 0. Abans de res: què és això i què NO és
 
-**És:** una eina que cada dia mira 79 empreses reals, els calcula un munt de
+**És:** una eina que cada dia mira 110 empreses reals (EUA, Europa,
+Espanya i Àsia), els calcula un munt de
 números tècnics i financers, i te'ls resumeix en una puntuació fàcil
 d'entendre (0 a 100) i una explicació en català de per què.
 
@@ -63,24 +64,44 @@ Quan toques una empresa, veuràs de dalt a baix:
 
 1. **L'anell gran amb un número (0-100)**: el score de mitjà termini.
    Verd = bo (≥66), groc = regular (40-65), vermell = fluix (<40).
-2. **El preu actual i la data de les dades.**
-3. **"Fa X dies al Top 10"**: quant de temps porta entre les 10 millors de
+2. **El delta de score** (si ja hi ha prou historial): quant ha canviat
+   avui, aquesta setmana i aquest mes. Verd = millora, vermell = empitjora.
+3. **La frase de recomanació** (🟢/🟡/🔴): un resum d'una línia de l'estat
+   de la tesi. **No és cap consell de compra/venda** — és el mateix
+   semàfor que la checklist (veure punt 8), només més visible.
+4. **El preu actual i la data de les dades.**
+5. **"Fa X dies al Top 10"**: quant de temps porta entre les 10 millors de
    tot l'univers. Molts dies seguits = tendència més consolidada, no un
    pic d'un sol dia.
-4. **El gràfic petit (sparkline)**: l'evolució del score els últims dies.
+6. **El gràfic petit (sparkline)**: l'evolució del score els últims dies.
    Línia verda pujant = millorant. Vermella baixant = empitjorant.
-5. **Les 3 barres d'horitzó** (curt/mitjà/llarg): compara't-los. Si els
+7. **🎯 "Per què està aquí"**: un paràgraf que resumeix en llenguatge
+   normal per què l'empresa té aquest score i quin n'és el principal
+   inconvenient. **Comença sempre per aquí** — és el resum més ràpid
+   de llegir.
+8. **🕓 "Historial de la tesi"**: els últims dies, dia a dia, amb què ha
+   canviat cada vegada (score, subscores, entrades/sortides del Top10).
+   Si encara no hi surt res, és normal — cal uns quants dies d'historial.
+9. **Les 3 barres d'horitzó** (curt/mitjà/llarg): compara't-los. Si els
    tres són semblants, el senyal és consistent. Si el curt és molt alt
    però el llarg molt baix, vol dir "puja ara però és cara/fluixa a
    llarg termini" — típic d'una moda passatgera.
-6. **Els 6 subscores** (Momentum, Tendència, Valoració, Qualitat,
-   Creixement, Risc): el desglossament del número gran.
-7. **L'etiqueta de risc + confiança de dades.**
-8. **"Per què aquesta puntuació"**: la llista amb ✔ i ⚠️. **Aquesta és la
-   part més important per a un principiant** — llegeix-la sempre abans
-   de fer res.
-9. **El botó daurat "Veure cotització i operar"**: t'hi porta a mirar
-   l'acció en detall (veure secció 6).
+10. **Els 6 subscores** (Momentum, Tendència, Valoració, Qualitat,
+    Creixement, Risc): el desglossament del número gran.
+11. **L'etiqueta de risc + confiança de dades.**
+12. **El botó daurat "Veure cotització i operar"**: t'hi porta a mirar
+    l'acció en detall (veure secció 6).
+13. **"⚙️ Configurar el meu broker"** i **"🤖 Analitzar amb IA"**: veure
+    seccions 6 i 6bis.
+14. **"Estat de la tesi"** (🟢 TESI VIGENT / 🟡 TESI A VIGILAR / 🔴 TESI
+    EN DUBTE): el mateix semàfor que la frase de dalt, amb la checklist
+    completa de 6 criteris sota.
+15. **"⚠️ Què vigilar"**: una llista de condicions que ARA MATEIX són
+    favorables però que, si es giressin, deteriorarien la tesi (per
+    exemple "que el RSI superi 70"). És la llista més "accionable" de
+    tota la fitxa — et diu exactament què mirar la propera vegada.
+16. **"Per què aquesta puntuació"**: la llista amb ✔ i ⚠️, més tècnica
+    que la narrativa de dalt.
 
 ---
 
@@ -157,6 +178,23 @@ decidir; no cal fer-ho ara mateix.
 
 ---
 
+## 6bis. El botó "🤖 Analitzar amb IA"
+
+A cada fitxa d'empresa hi ha un botó daurat que et porta a `claude.ai` amb
+un resum complet de l'empresa (score, subscores, checklist, explicació,
+"què vigilar") ja copiat al porta-retalls.
+
+**Com fer-ho servir:**
+1. Toca "🤖 Analitzar amb IA →"
+2. S'obre `claude.ai` en una pestanya nova
+3. Enganxa el text (ja el tens copiat)
+4. Pregunta el que vulguis — per exemple "Quines preguntes hauria de fer-me
+   abans de considerar aquesta empresa?"
+
+Això **no envia res automàticament** ni es connecta a cap API — només
+prepara el text i t'obre la conversa perquè hi enganxis tu mateix. Zero
+cost afegit, funciona sempre.
+
 ## 7. Les alertes: què vol dir cadascuna i què hauries de fer
 
 L'app et pot avisar de dues maneres (Issues de GitHub i notificacions
@@ -193,10 +231,13 @@ són els que el sistema vigila activament cada dia.
 1. Si t'arriba una notificació push, toca-la — et porta directament a la
    fitxa rellevant
 2. Si no, obre l'app (dades actualitzades cada dia laborable a la nit)
-3. Mira "⭐ Favorits" primer
-4. Un cop d'ull al "🔥 Top oportunitats"
-5. Si alguna cosa et crida l'atenció, entra a la fitxa i **llegeix
-   l'explicació sencera** abans de decidir res
+3. Mira **"📅 Què ha canviat avui"** a dalt de tot (si hi surt res —
+   entrades al Top10, grans salts de rànquing) per tenir el resum de
+   l'univers sencer en 5 segons
+4. Mira "⭐ Favorits" després
+5. Un cop d'ull al "🔥 Top oportunitats"
+6. Si alguna cosa et crida l'atenció, entra a la fitxa i **llegeix
+   la narrativa "🎯 Per què està aquí"** abans de decidir res
 
 ---
 
