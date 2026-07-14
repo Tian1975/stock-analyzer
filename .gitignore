@@ -11,8 +11,3 @@ env/
 .mypy_cache/
 
 .DS_Store
-
-data/raw/*
-data/history/*
-!data/raw/.gitkeep
-!data/history/.gitkeep
