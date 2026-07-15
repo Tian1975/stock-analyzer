@@ -47,7 +47,7 @@ THRESHOLD_REVIEW = 3.0
 RAW_FIELDS_TO_COMPARE = ["pe_trailing", "profit_margin", "revenue_growth", "earnings_growth"]
 
 
-def build_patched_fundamentals(indicators: dict, frozen_fundamentals: dict) -> dict:
+def build_patched_fundamentals(indicators: dict, frozen_fundamentals: dict) -> tuple:
     """
     Per a CADA ticker de l'univers (no nomes els de validacio),
     calcula els fonamentals EDGAR (si n'hi ha) i els fusiona amb
@@ -55,13 +55,23 @@ def build_patched_fundamentals(indicators: dict, frozen_fundamentals: dict) -> d
     percentils es calculen relatius a tothom -- si nomes patchegem
     4 tickers pero calculem percentils sobre 109, el resultat no
     seria representatiu del que passaria realment en produccio.
+
+    Retorna (fonamentals_patchejats, provider_usat_per_ticker) --
+    aquest segon dict es NOMES per a auditoria/report, no afecta el
+    calcul.
     """
     patched = {}
+    provider_used = {}
     for ticker, ind in indicators.items():
         frozen = frozen_fundamentals.get(ticker, {})
         edgar = edgar_derived_fundamentals(ticker, ind.get("as_of"), ind.get("last_close"))
-        patched[ticker] = merge_fundamentals(frozen=frozen, edgar=edgar) if edgar else frozen
-    return patched
+        if edgar:
+            patched[ticker] = merge_fundamentals(frozen=frozen, edgar=edgar)
+            provider_used[ticker] = "EDGAR"
+        else:
+            patched[ticker] = frozen
+            provider_used[ticker] = "Yahoo (fallback)"
+    return patched, provider_used
 
 
 def compare_ticker(ticker: str, baseline_df, baseline_sub, baseline_hz,
@@ -136,10 +146,13 @@ def run_validation() -> None:
     baseline_hz = horizon_scores(baseline_sub)
 
     print("Passada 2/2: pipeline PATCHED (EDGAR+Yahoo fusionat)...")
-    patched_fundamentals = build_patched_fundamentals(indicators, frozen_fundamentals)
+    patched_fundamentals, provider_used = build_patched_fundamentals(indicators, frozen_fundamentals)
     patched_df = build_dataframe(indicators, patched_fundamentals)
     patched_sub = compute_subscores(patched_df)
     patched_hz = horizon_scores(patched_sub)
+
+    n_edgar = sum(1 for p in provider_used.values() if p == "EDGAR")
+    print(f"Provider usat: EDGAR per a {n_edgar}/{len(indicators)} tickers de l'univers\n")
 
     print("\nComparant tickers de validacio...\n")
 
@@ -161,8 +174,15 @@ def run_validation() -> None:
         row = compare_ticker(ticker, baseline_df, baseline_sub, baseline_hz,
                               patched_df, patched_sub, patched_hz)
 
-        print(f"--- {ticker} ---")
+        provider = provider_used.get(ticker, "?")
+        print(f"--- {ticker} (provider: {provider}) ---")
         lines.append(f"\n## {ticker}\n")
+        lines.append(f"**Provider usat:** {provider}\n")
+
+        if provider != "EDGAR":
+            print(f"  ⚠️  ATENCIÓ: aquest ticker NO ha fet servir EDGAR — cap dada nova validada")
+            lines.append("⚠️ **ATENCIÓ: aquest ticker NO ha fet servir EDGAR — cap dada nova validada.**\n")
+
         lines.append("| Mètrica | Yahoo | EDGAR+Yahoo | Δ |")
         lines.append("|---|---|---|---|")
 
@@ -191,6 +211,19 @@ def run_validation() -> None:
             mid_term_deltas.append(abs(p_mid - b_mid))
 
     print("=" * 50)
+    print("PROVIDER USAT PER TICKER (validació)")
+    print("=" * 50)
+    lines.append("\n---\n\n## Provider usat per ticker\n")
+    lines.append("| Ticker | Provider |")
+    lines.append("|---|---|")
+    for ticker in VALIDATION_TICKERS:
+        if ticker not in indicators:
+            continue
+        provider = provider_used.get(ticker, "?")
+        print(f"  {ticker}: {provider}")
+        lines.append(f"| {ticker} | {provider} |")
+
+    print("\n" + "=" * 50)
     print("VALIDACIÓ D'UNIVERS COMPLET")
     print("=" * 50)
 
@@ -238,7 +271,15 @@ def run_validation() -> None:
     # El PASS/REVIEW/FAIL es decideix sobre l'univers COMPLET, no
     # nomes els 4 tickers de validacio -- es la mesura mes honesta
     # de si hi ha una desviacio sistemica introduida pel patch.
-    if max_abs_universe < THRESHOLD_OK and n_gt3 == 0:
+    validation_tickers_missing_edgar = [
+        t for t in VALIDATION_TICKERS
+        if t in indicators and provider_used.get(t) != "EDGAR"
+    ]
+
+    if validation_tickers_missing_edgar:
+        status = (f"🔴 INCOMPLET — {', '.join(validation_tickers_missing_edgar)} "
+                  f"no ha fet servir EDGAR (fallback silenciós, cap dada nova validada)")
+    elif max_abs_universe < THRESHOLD_OK and n_gt3 == 0:
         status = "✅ PASS"
     elif max_abs_universe < THRESHOLD_REVIEW and n_gt5 == 0:
         status = "⚠️  REVISAR"
