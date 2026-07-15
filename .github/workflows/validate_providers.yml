@@ -24,6 +24,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Backfill EDGAR data (universe EUA)
+        run: |
+          python scripts/edgar_backfill.py
+
+      - name: Verify EDGAR backfill produced data
+        run: |
+          echo "Normalized files:"
+          find data/edgar/normalized -name "*.json" 2>/dev/null | wc -l
+          echo "Sample:"
+          find data/edgar/normalized -name "*.json" 2>/dev/null | head
+
+          COUNT=$(find data/edgar/normalized -name "*.json" 2>/dev/null | wc -l)
+          if [ "$COUNT" -eq 0 ]; then
+            echo "ERROR: EDGAR backfill produced no normalized files"
+            echo "Comprova: 1) USER_AGENT real a ticker_to_cik.py  2) connectivitat a data.sec.gov  3) que aquest pas s'executa abans de la validació"
+            exit 1
+          fi
+
       - name: Run provider validation (Prova 5)
         run: |
           python scripts/validate_providers.py
