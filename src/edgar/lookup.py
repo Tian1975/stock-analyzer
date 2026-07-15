@@ -62,4 +62,65 @@ def lookup_fundamentals(ticker: str, date: str) -> dict:
     return result
 
 
-def get_latest_fy
+def get_latest_fy_value(ticker: str, concept: str, date: str) -> float | None:
+    """
+    Retorna el valor ANUAL (form 10-K, fp='FY') mes recent conegut
+    fins a `date`, ignorant filings trimestrals (10-Q). Necessari
+    per no barrejar magnituds trimestrals i anuals dins del mateix
+    calcul (p.ex. dividir el preu per un EPS d'un sol trimestre).
+    """
+    records = [
+        r for r in load_normalized(ticker)
+        if r["concept"] == concept
+        and r.get("fp") == "FY"
+        and r.get("filed") is not None
+        and r["filed"] <= date
+        and r.get("fy") is not None
+    ]
+    if not records:
+        return None
+
+    by_fy = {}
+    for r in records:
+        fy = r["fy"]
+        if fy not in by_fy or r["filed"] > by_fy[fy]["filed"]:
+            by_fy[fy] = r
+
+    latest_fy = max(by_fy.keys())
+    return by_fy[latest_fy]["value"]
+
+
+def yoy_growth(ticker: str, concept: str, date: str) -> float | None:
+    records = [
+        r for r in load_normalized(ticker)
+        if r["concept"] == concept
+        and r.get("fp") == "FY"
+        and r.get("filed") is not None
+        and r["filed"] <= date
+        and r.get("fy") is not None
+    ]
+    if len(records) < 2:
+        return None
+
+    by_fy = {}
+    for r in records:
+        fy = r["fy"]
+        if fy not in by_fy or r["filed"] > by_fy[fy]["filed"]:
+            by_fy[fy] = r
+
+    years = sorted(by_fy.keys())
+    if len(years) < 2:
+        return None
+
+    latest = by_fy[years[-1]]
+    prior = by_fy[years[-2]]
+
+    if not prior["value"]:
+        return None
+
+    return round(100 * (latest["value"] - prior["value"]) / prior["value"], 1)
+
+
+if __name__ == "__main__":
+    example = lookup_fundamentals("AAPL", "2023-06-15")
+    print(json.dumps(example, indent=2))
