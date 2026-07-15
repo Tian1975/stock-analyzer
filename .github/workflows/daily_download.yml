@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
   issues: write
+  actions: write
 
 concurrency:
   group: daily-download
@@ -80,3 +81,9 @@ jobs:
       - name: Push changes
         run: |
           git push origin main
+
+      - name: Trigger PWA deploy
+        run: |
+          gh workflow run deploy_pages.yml --ref main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
