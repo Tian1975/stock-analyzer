@@ -34,7 +34,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from config import HISTORY_RETENTION_DAYS
+from config import HISTORY_RETENTION_DAYS, SCORE_VERSION
 from edgar.score_adapter import edgar_derived_fundamentals, merge_fundamentals
 
 logging.basicConfig(
@@ -102,6 +102,7 @@ def build_dataframe(indicators: dict, fundamentals: dict) -> pd.DataFrame:
         frozen_f = fundamentals.get(ticker, {})
         edgar_f = edgar_derived_fundamentals(ticker, ind.get("as_of"), ind["last_close"])
         f = merge_fundamentals(frozen=frozen_f, edgar=edgar_f)
+        fundamentals_sources = f.get("_sources", {})
         trend = ind["trend"]
         mom = ind["momentum"]
         vol = ind["volatility"]
@@ -154,6 +155,7 @@ def build_dataframe(indicators: dict, fundamentals: dict) -> pd.DataFrame:
             "atr_relative_pct": atr_relative,
             "beta": f.get("beta"),
             "week52_position_pct": vol["week52_position_pct"],
+            "fundamentals_sources": fundamentals_sources,
         })
 
     return pd.DataFrame(rows).set_index("ticker")
@@ -703,6 +705,7 @@ def main():
             "explanation": build_explanation(ticker, row_sub, row_raw),
             "checklist": checklist,
             "what_changed": build_what_changed(row_sub, previous_result),
+            "fundamentals_sources": row_raw.get("fundamentals_sources") or {},
         })
 
     # Rànquing: ordenem per defecte pel score a mig termini (el més equilibrat)
@@ -766,6 +769,7 @@ def main():
         "universe_size": len(results),
         "horizon_weights": HORIZON_WEIGHTS,
         "history_retention_days": HISTORY_RETENTION_DAYS,
+        "score_version": SCORE_VERSION,
         "universe_daily_summary": universe_daily_summary,
         "results": results,
     }
