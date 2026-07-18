@@ -1,31 +1,36 @@
 """
 scripts/edgar_backfill.py
 
-Script d'us MANUAL i separat del pipeline diari (tal com es va
-decidir): descarrega, normalitza i guarda l'historic EDGAR per a
-una llista de tickers de validacio. NO toca score.py ni cap altre
-fitxer del pipeline existent.
+Descarrega, normalitza i guarda l'historic EDGAR. Dos modes:
 
-Objectiu d'aquesta primera passada: validar amb diverses empreses
-dels EUA (AAPL, MSFT, JNJ, JPM) que els 5 conceptes basics es
-mapegen be, abans de decidir integrar-ho al workflow diari.
+  python scripts/edgar_backfill.py
+      -> Univers de VALIDACIO fix (AAPL, MSFT, JNJ, JPM). Es el mode
+         que fa servir validate_providers.yml per a la Prova 5.
 
-Execucio:
-    python scripts/edgar_backfill.py
+  python scripts/edgar_backfill.py --universe
+      -> TOTS els tickers amb region=="US" llegits dinamicament de
+         data/indicators.json (ja generat per indicators.py). Es el
+         mode que fa servir daily_download.yml en producció.
 
-Despres de correr-lo, revisa el resum de conceptes que falten
-(missing_concepts_report) per a cada empresa. Si algun concepte
-fallar per a moltes empreses, cal afegir tags candidats nous a
-concepts.py (no cal tocar res mes).
+  python scripts/edgar_backfill.py AAPL MSFT ...
+      -> Llista explicita de tickers (us manual/depuracio).
+
+Idempotencia: downloader.py ja cacheja el JSON cru per ticker
+(data/edgar/raw/*.json) i no torna a descarregar si ja existeix
+-- no hi ha crides redundants a EDGAR dins d'una mateixa execucio.
+
+Resiliencia: un error en UN ticker (xarxa, format inesperat, etc.)
+es registra com a warning i el backfill CONTINUA amb la resta. Un
+problema temporal d'EDGAR mai ha de convertir-se en una fallada de
+tot el pipeline -- score.py ja cau a Yahoo net si un ticker no te
+dades normalitzades.
 """
 
+import json
 import sys
+import traceback
 from pathlib import Path
 
-# __file__ apunta sempre a la ubicacio real d'aquest script,
-# independentment de des d'on Pythonista el llanci. Aixo fa que
-# funcioni igual tocant "play" des de l'editor com des d'un
-# workflow de GitHub Actions.
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
@@ -35,50 +40,81 @@ from edgar.normalizer import normalize_companyfacts, missing_concepts_report
 from edgar.lookup import save_normalized
 from edgar.providers import EdgarProvider, CompositeProvider, FundamentalsNotAvailable
 
-# Univers de validacio: barreja de sectors per estressar el
-# normalitzador amb taxonomies diferents (tech, salut, banca).
 VALIDATION_TICKERS = ["AAPL", "MSFT", "JNJ", "JPM"]
+INDICATORS_PATH = PROJECT_ROOT / "data" / "indicators.json"
 
 
-def run_backfill(tickers: list[str]) -> None:
-    print(f"=== Backfill EDGAR de validacio ({len(tickers)} tickers) ===\n")
+def get_us_tickers_from_indicators() -> list[str]:
+    """
+    Llegeix data/indicators.json (ja generat per indicators.py abans
+    d'aquest pas al pipeline diari) i retorna tots els tickers amb
+    region=="US". Font unica de veritat: no cal duplicar la llista
+    de l'univers US enlloc mes.
+    """
+    if not INDICATORS_PATH.exists():
+        print(f"⚠️  {INDICATORS_PATH} no existeix -- s'omet backfill EDGAR")
+        return []
+
+    with open(INDICATORS_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    tickers = [
+        ticker for ticker, ind in data.get("data", {}).items()
+        if ind.get("region") == "US"
+    ]
+    return sorted(tickers)
+
+
+def run_backfill(tickers: list[str]) -> dict:
+    print(f"=== Backfill EDGAR ({len(tickers)} tickers) ===\n")
 
     summary = {}
 
     for ticker in tickers:
         print(f"--- {ticker} ---")
-        raw = download_companyfacts(ticker)
-        if raw is None:
-            print(f"  ⚠️  Sense dades a EDGAR, s'omet\n")
-            summary[ticker] = "sense_cik_o_404"
-            continue
+        try:
+            raw = download_companyfacts(ticker)
+            if raw is None:
+                print(f"  ⚠️  Sense dades a EDGAR (sense CIK o 404), s'omet\n")
+                summary[ticker] = "sense_cik_o_404"
+                continue
 
-        records = normalize_companyfacts(ticker, raw)
-        save_normalized(ticker, records)
+            records = normalize_companyfacts(ticker, raw)
+            save_normalized(ticker, records)
 
-        missing = missing_concepts_report(ticker, raw)
-        n_records = len(records)
-        n_periods = len({r["period_end"] for r in records})
+            missing = missing_concepts_report(ticker, raw)
+            n_records = len(records)
+            n_periods = len({r["period_end"] for r in records})
 
-        print(f"  ✅ {n_records} registres normalitzats ({n_periods} periodes diferents)")
-        if missing:
-            print(f"  ⚠️  Conceptes NO trobats: {', '.join(missing)}")
-        else:
-            print(f"  ✅ Tots els 5 conceptes basics mapejats correctament")
+            print(f"  ✅ {n_records} registres normalitzats ({n_periods} periodes diferents)")
+            if missing:
+                print(f"  ⚠️  Conceptes NO trobats: {', '.join(missing)}")
+            else:
+                print(f"  ✅ Tots els conceptes basics mapejats correctament")
 
-        summary[ticker] = {
-            "records": n_records,
-            "periods": n_periods,
-            "missing_concepts": missing,
-        }
+            summary[ticker] = {
+                "records": n_records,
+                "periods": n_periods,
+                "missing_concepts": missing,
+            }
+
+        except Exception as e:
+            # Resiliencia: un ticker problematic MAI atura la resta
+            # del backfill, ni fa fallar el pipeline diari sencer.
+            print(f"  🔴 ERROR inesperat amb {ticker}: {e}")
+            traceback.print_exc()
+            summary[ticker] = f"error: {e}"
+
         print()
 
     print("=== Resum final ===")
+    ok_count = sum(1 for v in summary.values() if isinstance(v, dict))
+    print(f"  {ok_count}/{len(tickers)} tickers backfillats correctament")
     for ticker, result in summary.items():
         print(f"  {ticker}: {result}")
 
-    print("\n=== Prova de lookup point-in-time (AAPL, 2023-06-15) ===")
-    if "AAPL" in tickers:
+    if "AAPL" in tickers and isinstance(summary.get("AAPL"), dict):
+        print("\n=== Prova de lookup point-in-time (AAPL, 2023-06-15) ===")
         provider = CompositeProvider([EdgarProvider()])
         try:
             example = provider.lookup("AAPL", "2023-06-15")
@@ -91,6 +127,20 @@ def run_backfill(tickers: list[str]) -> None:
         except FundamentalsNotAvailable as e:
             print(f"  ⚠️  {e}")
 
+    return summary
+
 
 if __name__ == "__main__":
-    run_backfill(VALIDATION_TICKERS)
+    args = sys.argv[1:]
+
+    if "--universe" in args:
+        tickers = get_us_tickers_from_indicators()
+        if not tickers:
+            print("⚠️  Cap ticker US trobat a indicators.json -- s'omet backfill (no és un error fatal)")
+            sys.exit(0)
+    elif args:
+        tickers = args
+    else:
+        tickers = VALIDATION_TICKERS
+
+    run_backfill(tickers)
