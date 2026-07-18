@@ -42,9 +42,9 @@ jobs:
             exit 1
           fi
 
-      - name: DEBUG - dump AAPL/MSFT FY records
+      - name: DEBUG - dump AAPL/MSFT/JNJ/JPM FY records
         run: |
-          python scripts/debug_dump.py AAPL MSFT
+          python scripts/debug_dump.py AAPL MSFT JNJ JPM
 
       - name: Run provider validation (Prova 5)
         run: |
