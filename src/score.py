@@ -35,6 +35,7 @@ import numpy as np
 import pandas as pd
 
 from config import HISTORY_RETENTION_DAYS
+from edgar.score_adapter import edgar_derived_fundamentals, merge_fundamentals
 
 logging.basicConfig(
     level=logging.INFO,
@@ -98,7 +99,9 @@ def safe_mean(values: list[float | None]) -> float | None:
 def build_dataframe(indicators: dict, fundamentals: dict) -> pd.DataFrame:
     rows = []
     for ticker, ind in indicators.items():
-        f = fundamentals.get(ticker, {})
+        frozen_f = fundamentals.get(ticker, {})
+        edgar_f = edgar_derived_fundamentals(ticker, ind.get("as_of"), ind["last_close"])
+        f = merge_fundamentals(frozen=frozen_f, edgar=edgar_f)
         trend = ind["trend"]
         mom = ind["momentum"]
         vol = ind["volatility"]
