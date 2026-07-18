@@ -24,10 +24,24 @@ ALERT_RSI_OVERBOUGHT = 70
 ALERT_RSI_OVERSOLD = 30
 ALERT_MIN_CONFIDENCE_PCT = 90.0
 
-# Retenció de l'historial diari de scores (per evolució, "dies al Top10" i
-# "millor score dels últims 6 mesos")
-HISTORY_RETENTION_DAYS = 180
+# Retenció de l'historial diari de scores (per evolució, "dies al Top10",
+# "millor score dels últims mesos", i auditoria retrospectiva del model
+# -- vegeu ARCHITECTURE.md secció 9, Fase 3). 730 dies permet auditar
+# retorns fins a l'horitzó llarg termini (180d) i comparar any contra
+# any (estacionalitat). Un JSON diari de ~109 tickers és petit; el cost
+# d'espai és irrellevant comparat amb el valor de no haver de tornar a
+# esperar si es necessita més historial retrospectivament.
+HISTORY_RETENTION_DAYS = 730
 
 # URL pública de la PWA (per enllaçar directament a la fitxa d'un ticker
 # des de les alertes). Sense barra final.
 PWA_BASE_URL = "https://tian1975.github.io/stock-analyzer"
+
+# Versió del motor de puntuació. Incrementar-la SEMPRE que canviï una
+# fórmula, un pes d'horitzó, o quina font alimenta un subscore (p.ex.
+# activar FEATURE_FLAGS["edgar_growth"] a score_adapter.py). Es grava
+# a cada snapshot diari perquè, en una auditoria retrospectiva, es pugui
+# saber amb quin motor es va generar cada dia d'historial -- sense
+# aquesta marca, un canvi de fórmula futur invalidaria silenciosament
+# les comparacions "abans/despres" del Model 2.
+SCORE_VERSION = "1.0.0"
