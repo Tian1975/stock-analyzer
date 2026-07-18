@@ -1,5 +1,14 @@
 """
 lookup.py  (Capa 3 + Capa 4)
+
+Aquesta es la peca "magica" que menciona la conversa: en lloc de
+guardar nomes l'ultim valor de cada concepte, guardem tota la serie
+temporal amb la data real de publicacio (`filed`). Aixo permet
+preguntar "que sabiem d'AAPL el 2023-06-15?" i obtenir nomes els
+valors que ja eren publics aquell dia — mai els d'un filing futur.
+
+score.py nomes hauria de parlar amb aquest fitxer. No necessita
+saber res d'EDGAR, tags XBRL, ni taxonomies.
 """
 
 import json
@@ -10,6 +19,7 @@ NORMALIZED_DIR = PROJECT_ROOT / "data" / "edgar" / "normalized"
 
 
 def save_normalized(ticker: str, records: list[dict]) -> None:
+    """Guarda la serie normalitzada completa d'un ticker a disc."""
     NORMALIZED_DIR.mkdir(parents=True, exist_ok=True)
     path = NORMALIZED_DIR / f"{ticker.replace('.', '_')}.json"
     with open(path, "w", encoding="utf-8") as f:
@@ -25,6 +35,33 @@ def load_normalized(ticker: str) -> list[dict]:
 
 
 def lookup_fundamentals(ticker: str, date: str) -> dict:
+    """
+    Retorna els fonamentals "coneguts" per a un ticker en una data
+    donada: per a cada concepte canonic, el valor mes recent el
+    'filed' del qual sigui <= date. Mai un valor d'un filing
+    posterior a `date` (aixo es el que garanteix que sigui
+    point-in-time i no "trampa amb dades del futur").
+
+    date ha de ser un string ISO "YYYY-MM-DD".
+
+    Retorna un dict pla, per exemple:
+    {
+        "eps_basic": 6.11,
+        "revenue": 394328000000,
+        "net_income": 99803000000,
+        "shares_outstanding": 15728700000,
+        "operating_income": 114301000000,
+        "_as_of": {
+            "eps_basic": {"filed": "2023-05-05", "form": "10-Q", "accession": "..."},
+            ...
+        }
+    }
+
+    Si no hi ha cap dada disponible per a un concepte abans de
+    `date` (p.ex. la data demanada es anterior a la primera dada
+    de l'empresa a EDGAR), aquell concepte simplement no apareix
+    al resultat.
+    """
     records = load_normalized(ticker)
     if not records:
         return {}
@@ -34,11 +71,12 @@ def lookup_fundamentals(ticker: str, date: str) -> dict:
     for rec in records:
         filed = rec.get("filed")
         if filed is None or filed > date:
-            continue
+            continue  # encara no era public en aquesta data
 
         concept = rec["concept"]
         current_best = best_per_concept.get(concept)
 
+        # ens quedem amb el filing mes RECENT que segueixi complint filed <= date
         if current_best is None or filed > current_best["filed"]:
             best_per_concept[concept] = rec
 
@@ -62,58 +100,83 @@ def lookup_fundamentals(ticker: str, date: str) -> dict:
     return result
 
 
-def get_latest_fy_value(ticker: str, concept: str, date: str) -> float | None:
-    """
-    Retorna el valor ANUAL (form 10-K, fp='FY') mes recent conegut
-    fins a `date`, ignorant filings trimestrals (10-Q). Necessari
-    per no barrejar magnituds trimestrals i anuals dins del mateix
-    calcul (p.ex. dividir el preu per un EPS d'un sol trimestre).
-    """
-    records = [
-        r for r in load_normalized(ticker)
-        if r["concept"] == concept
-        and r.get("fp") == "FY"
-        and r.get("filed") is not None
-        and r["filed"] <= date
-        and r.get("fy") is not None
-    ]
-    if not records:
+from datetime import date as _date
+
+
+def _parse_iso_date(s: str):
+    try:
+        return _date.fromisoformat(s)
+    except (TypeError, ValueError):
         return None
 
-    by_fy = {}
-    for r in records:
-        fy = r["fy"]
-        if fy not in by_fy or r["filed"] > by_fy[fy]["filed"]:
-            by_fy[fy] = r
 
-    latest_fy = max(by_fy.keys())
-    return by_fy[latest_fy]["value"]
+def _annual_records(ticker: str, concept: str, as_of_date: str) -> list[dict]:
+    """
+    Filtra els registres d'un concepte que cobreixen un periode
+    REALMENT anual (~365 dies), basant-se en period_start/period_end
+    -- NO en els camps fy/fp d'EDGAR, que indiquen de quin informe
+    prove el punt (el filing), no quin periode cobreix aquell punt
+    concret. Un mateix 10-K conte punts trimestrals i anuals amb el
+    MATEIX fy/fp, aixi que cal la durada real per distingir-los.
+
+    Deduplica per period_end, quedant-se amb el filing mes recent
+    per a cada periode anual concret.
+    """
+    candidates = []
+    for r in load_normalized(ticker):
+        if r["concept"] != concept:
+            continue
+        filed = r.get("filed")
+        if filed is None or filed > as_of_date:
+            continue
+
+        start = _parse_iso_date(r.get("period_start"))
+        end = _parse_iso_date(r.get("period_end"))
+        if start is None or end is None:
+            continue
+
+        duration_days = (end - start).days
+        if not (350 <= duration_days <= 380):
+            continue  # no es un periode anual (es trimestral, YTD parcial, etc.)
+
+        candidates.append(r)
+
+    by_period_end: dict[str, dict] = {}
+    for r in candidates:
+        key = r["period_end"]
+        current = by_period_end.get(key)
+        if current is None or r["filed"] > current["filed"]:
+            by_period_end[key] = r
+
+    return sorted(by_period_end.values(), key=lambda r: r["period_end"])
+
+
+def get_latest_fy_value(ticker: str, concept: str, date: str) -> float | None:
+    """
+    Retorna el valor del darrer periode REALMENT anual (~365 dies)
+    conegut fins a `date`, identificat per durada real del periode
+    (period_end - period_start), no pel camp fy/fp d'EDGAR.
+    """
+    records = _annual_records(ticker, concept, date)
+    if not records:
+        return None
+    return records[-1]["value"]
 
 
 def yoy_growth(ticker: str, concept: str, date: str) -> float | None:
-    records = [
-        r for r in load_normalized(ticker)
-        if r["concept"] == concept
-        and r.get("fp") == "FY"
-        and r.get("filed") is not None
-        and r["filed"] <= date
-        and r.get("fy") is not None
-    ]
+    """
+    Creixement interanual (%), comparant els DOS periodes anuals
+    (~365 dies) mes recents coneguts fins a `date`, identificats per
+    durada real del periode, no pel camp fy/fp d'EDGAR.
+
+    Retorna None si no hi ha almenys 2 periodes anuals coneguts.
+    """
+    records = _annual_records(ticker, concept, date)
     if len(records) < 2:
         return None
 
-    by_fy = {}
-    for r in records:
-        fy = r["fy"]
-        if fy not in by_fy or r["filed"] > by_fy[fy]["filed"]:
-            by_fy[fy] = r
-
-    years = sorted(by_fy.keys())
-    if len(years) < 2:
-        return None
-
-    latest = by_fy[years[-1]]
-    prior = by_fy[years[-2]]
+    latest = records[-1]
+    prior = records[-2]
 
     if not prior["value"]:
         return None
