@@ -60,29 +60,53 @@ def get_score(date_str: str, ticker: str, score_field: str = "mid_term") -> floa
     return result.get("scores", {}).get(score_field)
 
 
-def get_rank(date_str: str, ticker: str, score_field: str = "mid_term") -> int | None:
+def _ranked_tickers(snapshot: dict, score_field: str) -> list[tuple[str, float]]:
     """
-    Posicio (1 = millor) d'un ticker dins de l'univers, per a un
-    score_field concret, en una data concreta.
+    Privada. Tots els tickers d'un snapshot ja carregat, ordenats
+    descendent per score_field. Els que tenen score null es
+    descarten (no participen al rànquing). Punt UNIC on viu la
+    logica d'ordenacio -- si en el futur es guarden rank_short_term/
+    rank_long_term precalculats, nomes cal tocar _rank(), no aquesta
+    funcio ni les que la fan servir.
+    """
+    scored = [
+        (r["ticker"], r.get("scores", {}).get(score_field))
+        for r in snapshot.get("results", [])
+    ]
+    scored = [(t, s) for t, s in scored if s is not None]
+    scored.sort(key=lambda pair: pair[1], reverse=True)
+    return scored
 
-    Per "mid_term" es fa servir directament "rank_mid_term" (ja
-    precalculat per score.py). Per als altres horitzons, es calcula
-    aqui ordenant tots els resultats del snapshot per aquell camp.
+
+def _rank(snapshot: dict, ticker: str, score_field: str) -> int | None:
     """
-    _validate_score_field(score_field)
-    snapshot = load_snapshot(date_str)
+    Privada. Posicio (1 = millor) d'un ticker dins d'un snapshot ja
+    carregat. Per "mid_term" reutilitza rank_mid_term (ja precalculat
+    per score.py); per la resta, es calcula ordenant amb
+    _ranked_tickers(). Si en el futur els snapshots guarden tots els
+    ranks precalculats, aquest es l'UNIC lloc a canviar.
+    """
     result = _get_ticker_result(snapshot, ticker)
     if result is None:
         return None
 
-    if score_field == "mid_term" and "rank_mid_term" in result:
+    if score_field == "mid_term" and result.get("rank_mid_term") is not None:
         return result["rank_mid_term"]
 
-    ranked = top_n(date_str, score_field=score_field, n=None)
-    for i, (t, _score) in enumerate(ranked, start=1):
+    for i, (t, _score) in enumerate(_ranked_tickers(snapshot, score_field), start=1):
         if t == ticker:
             return i
     return None
+
+
+def get_rank(date_str: str, ticker: str, score_field: str = "mid_term") -> int | None:
+    """
+    Posicio (1 = millor) d'un ticker dins de l'univers, per a un
+    score_field concret, en una data concreta.
+    """
+    _validate_score_field(score_field)
+    snapshot = load_snapshot(date_str)
+    return _rank(snapshot, ticker, score_field)
 
 
 def top_n(
@@ -93,25 +117,16 @@ def top_n(
     """
     Els N tickers amb millor score_field en una data concreta,
     ordenats descendent. n=None retorna l'univers sencer ordenat
-    (util per calcular get_rank() de qualsevol horitzo).
+    (util per calcular get_rank() de qualsevol horitzo, o per a
+    metriques que necessiten totes les puntuacions).
 
     Retorna una llista de (ticker, score). Els tickers amb score
-    null per aquell camp es descarten (no participen al rànquing).
+    null per aquell camp es descarten.
     """
     _validate_score_field(score_field)
     snapshot = load_snapshot(date_str)
-
-    scored = []
-    for r in snapshot.get("results", []):
-        value = r.get("scores", {}).get(score_field)
-        if value is not None:
-            scored.append((r["ticker"], value))
-
-    scored.sort(key=lambda pair: pair[1], reverse=True)
-
-    if n is None:
-        return scored
-    return scored[:n]
+    ranked = _ranked_tickers(snapshot, score_field)
+    return ranked if n is None else ranked[:n]
 
 
 def get_ticker_history(

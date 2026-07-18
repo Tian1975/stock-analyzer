@@ -19,3 +19,4 @@ guardat.
 
 from .loader import SnapshotIndex, load_snapshot, load_snapshots, latest_snapshot
 from .queries import get_ticker_history, get_rank, get_score, top_n, list_dates
+from .metrics import make_evidence, score_distribution, top10_turnover
