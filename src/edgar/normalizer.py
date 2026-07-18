@@ -90,6 +90,7 @@ def normalize_companyfacts(ticker: str, raw_facts: dict) -> list[dict]:
                 "tag": matched_tag,
                 "value": point.get("val"),
                 "unit": spec["unit"],
+                "period_start": point.get("start"),
                 "period_end": point.get("end"),
                 "fy": point.get("fy"),
                 "fp": point.get("fp"),
