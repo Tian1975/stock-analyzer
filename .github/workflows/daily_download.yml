@@ -52,6 +52,11 @@ jobs:
         run: |
           python src/indicators.py
 
+      - name: Backfill EDGAR data (US universe)
+        continue-on-error: true
+        run: |
+          python scripts/edgar_backfill.py --universe
+
       - name: Calculate scores
         run: |
           python src/score.py
