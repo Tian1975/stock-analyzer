@@ -26,11 +26,12 @@ ALERT_MIN_CONFIDENCE_PCT = 90.0
 
 # Retenció de l'historial diari de scores (per evolució, "dies al Top10",
 # "millor score dels últims mesos", i auditoria retrospectiva del model
-# -- vegeu ARCHITECTURE.md secció 9, Fase 3). 730 dies permet auditar
-# retorns fins a l'horitzó llarg termini (180d) i comparar any contra
-# any (estacionalitat). Un JSON diari de ~109 tickers és petit; el cost
-# d'espai és irrellevant comparat amb el valor de no haver de tornar a
-# esperar si es necessita més historial retrospectivament.
+# -- vegeu ARCHITECTURE.md secció 9, Fase 3). 730 dies (2 anys) permet
+# auditar retorns fins a l'horitzó llarg termini (180d) i comparar any
+# contra any (estacionalitat). Un JSON diari de ~109 tickers és petit;
+# el cost d'espai és irrellevant comparat amb el valor de no haver de
+# tornar a esperar si es necessita més historial retrospectivament.
+# No baixar aquest valor sense revisar ARCHITECTURE.md secció 9.
 HISTORY_RETENTION_DAYS = 730
 
 # URL pública de la PWA (per enllaçar directament a la fitxa d'un ticker
