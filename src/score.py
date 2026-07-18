@@ -96,13 +96,17 @@ def safe_mean(values: list[float | None]) -> float | None:
     return sum(clean) / len(clean)
 
 
-def build_dataframe(indicators: dict, fundamentals: dict) -> pd.DataFrame:
+def build_dataframe(indicators: dict, fundamentals: dict, generated_at: str) -> pd.DataFrame:
     rows = []
     for ticker, ind in indicators.items():
         frozen_f = fundamentals.get(ticker, {})
         edgar_f = edgar_derived_fundamentals(ticker, ind.get("as_of"), ind["last_close"])
         f = merge_fundamentals(frozen=frozen_f, edgar=edgar_f)
-        fundamentals_sources = f.get("_sources", {})
+        fundamentals_provenance = {
+            "provider": "CompositeProvider",
+            "generated_at": generated_at,
+            "fundamentals_sources": f.get("_sources", {}),
+        }
         trend = ind["trend"]
         mom = ind["momentum"]
         vol = ind["volatility"]
@@ -155,7 +159,7 @@ def build_dataframe(indicators: dict, fundamentals: dict) -> pd.DataFrame:
             "atr_relative_pct": atr_relative,
             "beta": f.get("beta"),
             "week52_position_pct": vol["week52_position_pct"],
-            "fundamentals_sources": fundamentals_sources,
+            "fundamentals_provenance": fundamentals_provenance,
         })
 
     return pd.DataFrame(rows).set_index("ticker")
@@ -667,11 +671,12 @@ def build_universe_daily_summary(results: list, max_events: int = 8) -> list:
 
 def main():
     start = datetime.now(timezone.utc)
+    generated_at = start.isoformat()
     log.info("Carregant indicadors i fonamentals...")
     indicators, fundamentals = load_data()
     log.info(f"{len(indicators)} tickers amb indicadors, {len(fundamentals)} amb fonamentals vàlids")
 
-    df = build_dataframe(indicators, fundamentals)
+    df = build_dataframe(indicators, fundamentals, generated_at)
     subscores = compute_subscores(df)
     confidence = compute_confidence(df)
     horizons = horizon_scores(subscores)
@@ -705,7 +710,7 @@ def main():
             "explanation": build_explanation(ticker, row_sub, row_raw),
             "checklist": checklist,
             "what_changed": build_what_changed(row_sub, previous_result),
-            "fundamentals_sources": row_raw.get("fundamentals_sources") or {},
+            "fundamentals_provenance": row_raw.get("fundamentals_provenance") or {},
         })
 
     # Rànquing: ordenem per defecte pel score a mig termini (el més equilibrat)
@@ -764,7 +769,7 @@ def main():
     universe_daily_summary = build_universe_daily_summary(results)
 
     output = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": generated_at,
         "duration_seconds": round((datetime.now(timezone.utc) - start).total_seconds(), 2),
         "universe_size": len(results),
         "horizon_weights": HORIZON_WEIGHTS,
