@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-20T23:36:22.238997+00:00",
-  "duration_seconds": 101.7,
+  "generated_at": "2026-07-21T23:17:32.801220+00:00",
+  "duration_seconds": 86.2,
   "provider": "Yahoo Finance",
   "version": "1.0.0",
-  "git_commit": "709743f",
+  "git_commit": "78d606a",
   "python_version": "3.11.15",
   "yfinance_version": "1.5.1",
   "pandas_version": "3.0.2",
@@ -11,9 +11,7 @@
   "ok": 109,
   "failed": 1,
   "success_rate_pct": 99.1,
-  "fallback_individual_used": [
-    "9988.HK"
-  ],
+  "fallback_individual_used": [],
   "tickers_failed": [
     {
       "ticker": "ROG.SW",
