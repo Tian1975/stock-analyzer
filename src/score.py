@@ -232,9 +232,13 @@ def horizon_scores(subscores: pd.DataFrame) -> pd.DataFrame:
 
 
 CHECKLIST_CRITERIA = [
-    "trend_intact", "earnings_growing", "valuation_attractive",
-    "quality_solid", "risk_controlled", "not_overbought",
+    "trend_intact", "not_overbought", "earnings_growing",
+    "valuation_attractive", "quality_solid", "risk_controlled",
 ]
+# Els dos criteris que, si fallen, comporten el risc més gran d'entrar
+# tard o a contracorrent (vegeu docs/score.md). Es mostren sempre primer
+# i marcats a la PWA perquè no passin desapercebuts entre la resta.
+CRITICAL_CRITERIA = {"trend_intact", "not_overbought"}
 CHECKLIST_LABELS = {
     "trend_intact": "Tendència intacta (SMA20>SMA50>SMA200)",
     "earnings_growing": "Beneficis creixent",
@@ -284,7 +288,13 @@ def build_checklist(row_sub: pd.Series, row_raw: pd.Series) -> dict:
 
     return {
         "items": [
-            {"key": k, "label": CHECKLIST_LABELS[k], "ok": bool(checks[k]), "detail": details[k]}
+            {
+                "key": k,
+                "label": CHECKLIST_LABELS[k],
+                "ok": bool(checks[k]),
+                "detail": details[k],
+                "critical": k in CRITICAL_CRITERIA,
+            }
             for k in CHECKLIST_CRITERIA
         ],
         "passed": passed,
