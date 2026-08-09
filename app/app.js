@@ -383,6 +383,13 @@ function renderWhatChanged(r) {
   `;
 }
 
+function renderTrendLabel(trendAlignment) {
+  const level = trendAlignment || 0;
+  const seg = (name, threshold, colorClass) =>
+    `<span class="${level >= threshold ? colorClass : "sma-pending"}">${name}</span>`;
+  return `Tendència intacta (${seg("SMA20", 1, "sma-1")}&gt;${seg("SMA50", 2, "sma-2")}&gt;${seg("SMA200", 3, "sma-3")})`;
+}
+
 function renderChecklist(r) {
   if (!r.checklist) return "";
   const semaforoIcon = r.checklist.semaforo === "verd" ? "🟢" : r.checklist.semaforo === "groc" ? "🟡" : "🔴";
@@ -393,12 +400,14 @@ function renderChecklist(r) {
       const detail = item.detail ? ` <span class="check-detail">(${item.detail})</span>` : "";
       const badge = item.critical ? ` <span class="check-critical-badge">CRÍTIC</span>` : "";
       const critClass = item.critical ? " check-critical" : "";
+      const mark = `<span class="check-mark ${item.ok ? "mark-ok" : "mark-fail"}">${item.ok ? "✔" : "✖"}</span>`;
+      const label = item.key === "trend_intact" ? renderTrendLabel(r.trend_alignment) : item.label;
       // Divisor visual just abans que comencin els criteris secundaris.
       const divider = lastCritical === true && item.critical === false
         ? `<li class="checklist-divider" aria-hidden="true"></li>`
         : "";
       lastCritical = item.critical;
-      return `${divider}<li class="${item.ok ? "check-ok" : "check-fail"}${critClass}">${item.ok ? "✔" : "✖"} ${item.label}${detail}${badge}</li>`;
+      return `${divider}<li class="${item.ok ? "check-ok" : "check-fail"}${critClass}">${mark} ${label}${detail}${badge}</li>`;
     })
     .join("");
   return `

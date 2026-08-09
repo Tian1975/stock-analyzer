@@ -578,6 +578,13 @@ body {
 .checklist-list li.check-ok { color: var(--text); }
 .checklist-list li.check-fail { color: var(--text-tertiary); }
 .check-detail { color: var(--text-secondary); font-size: 12px; }
+.check-mark { font-weight: 700; }
+.check-mark.mark-ok { color: var(--green); }
+.check-mark.mark-fail { color: var(--red); }
+.sma-pending { color: var(--text-tertiary); }
+.sma-1 { color: var(--gold); font-weight: 700; }
+.sma-2 { color: var(--amber); font-weight: 700; }
+.sma-3 { color: var(--green); font-weight: 700; }
 .checklist-list li.check-critical { font-weight: 600; }
 .check-critical-badge {
   display: inline-block;
