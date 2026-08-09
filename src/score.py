@@ -34,8 +34,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from config import HISTORY_RETENTION_DAYS, SCORE_VERSION
-from edgar.score_adapter import edgar_derived_fundamentals, merge_fundamentals
+from config import HISTORY_RETENTION_DAYS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -96,17 +95,10 @@ def safe_mean(values: list[float | None]) -> float | None:
     return sum(clean) / len(clean)
 
 
-def build_dataframe(indicators: dict, fundamentals: dict, generated_at: str) -> pd.DataFrame:
+def build_dataframe(indicators: dict, fundamentals: dict) -> pd.DataFrame:
     rows = []
     for ticker, ind in indicators.items():
-        frozen_f = fundamentals.get(ticker, {})
-        edgar_f = edgar_derived_fundamentals(ticker, ind.get("as_of"), ind["last_close"])
-        f = merge_fundamentals(frozen=frozen_f, edgar=edgar_f)
-        fundamentals_provenance = {
-            "provider": "CompositeProvider",
-            "generated_at": generated_at,
-            "fundamentals_sources": f.get("_sources", {}),
-        }
+        f = fundamentals.get(ticker, {})
         trend = ind["trend"]
         mom = ind["momentum"]
         vol = ind["volatility"]
@@ -159,7 +151,6 @@ def build_dataframe(indicators: dict, fundamentals: dict, generated_at: str) -> 
             "atr_relative_pct": atr_relative,
             "beta": f.get("beta"),
             "week52_position_pct": vol["week52_position_pct"],
-            "fundamentals_provenance": fundamentals_provenance,
         })
 
     return pd.DataFrame(rows).set_index("ticker")
@@ -282,9 +273,18 @@ def build_checklist(row_sub: pd.Series, row_raw: pd.Series) -> dict:
     else:
         semaforo = "vermell"
 
+    details = {
+        "trend_intact": f"{row_sub.get('trend'):.0f}/100" if pd.notna(row_sub.get("trend")) else "—",
+        "earnings_growing": f"{earnings_growth:+.1f}%" if pd.notna(earnings_growth) else "—",
+        "valuation_attractive": f"{valuation:.0f}/100" if pd.notna(valuation) else "—",
+        "quality_solid": f"{quality:.0f}/100" if pd.notna(quality) else "—",
+        "risk_controlled": f"{risk:.0f}/100" if pd.notna(risk) else "—",
+        "not_overbought": f"RSI {rsi:.0f}" if pd.notna(rsi) else "—",
+    }
+
     return {
         "items": [
-            {"key": k, "label": CHECKLIST_LABELS[k], "ok": bool(checks[k])}
+            {"key": k, "label": CHECKLIST_LABELS[k], "ok": bool(checks[k]), "detail": details[k]}
             for k in CHECKLIST_CRITERIA
         ],
         "passed": passed,
@@ -671,12 +671,11 @@ def build_universe_daily_summary(results: list, max_events: int = 8) -> list:
 
 def main():
     start = datetime.now(timezone.utc)
-    generated_at = start.isoformat()
     log.info("Carregant indicadors i fonamentals...")
     indicators, fundamentals = load_data()
     log.info(f"{len(indicators)} tickers amb indicadors, {len(fundamentals)} amb fonamentals vàlids")
 
-    df = build_dataframe(indicators, fundamentals, generated_at)
+    df = build_dataframe(indicators, fundamentals)
     subscores = compute_subscores(df)
     confidence = compute_confidence(df)
     horizons = horizon_scores(subscores)
@@ -710,7 +709,6 @@ def main():
             "explanation": build_explanation(ticker, row_sub, row_raw),
             "checklist": checklist,
             "what_changed": build_what_changed(row_sub, previous_result),
-            "fundamentals_provenance": row_raw.get("fundamentals_provenance") or {},
         })
 
     # Rànquing: ordenem per defecte pel score a mig termini (el més equilibrat)
@@ -769,12 +767,11 @@ def main():
     universe_daily_summary = build_universe_daily_summary(results)
 
     output = {
-        "generated_at": generated_at,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "duration_seconds": round((datetime.now(timezone.utc) - start).total_seconds(), 2),
         "universe_size": len(results),
         "horizon_weights": HORIZON_WEIGHTS,
         "history_retention_days": HISTORY_RETENTION_DAYS,
-        "score_version": SCORE_VERSION,
         "universe_daily_summary": universe_daily_summary,
         "results": results,
     }
