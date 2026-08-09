@@ -578,7 +578,7 @@ body {
 .checklist-list li.check-ok { color: var(--text); }
 .checklist-list li.check-fail { color: var(--text-tertiary); }
 .check-detail { color: var(--text-secondary); font-size: 12px; }
-.check-mark { font-weight: 700; }
+.check-mark { font-weight: 700; font-variant-emoji: text; }
 .check-mark.mark-ok { color: var(--green); }
 .check-mark.mark-fail { color: var(--red); }
 .sma-pending { color: var(--text-tertiary); }

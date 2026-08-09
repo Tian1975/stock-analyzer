@@ -400,7 +400,7 @@ function renderChecklist(r) {
       const detail = item.detail ? ` <span class="check-detail">(${item.detail})</span>` : "";
       const badge = item.critical ? ` <span class="check-critical-badge">CRÍTIC</span>` : "";
       const critClass = item.critical ? " check-critical" : "";
-      const mark = `<span class="check-mark ${item.ok ? "mark-ok" : "mark-fail"}">${item.ok ? "✔" : "✖"}</span>`;
+      const mark = `<span class="check-mark ${item.ok ? "mark-ok" : "mark-fail"}">${item.ok ? "✔\uFE0E" : "✖\uFE0E"}</span>`;
       const label = item.key === "trend_intact" ? renderTrendLabel(r.trend_alignment) : item.label;
       // Divisor visual just abans que comencin els criteris secundaris.
       const divider = lastCritical === true && item.critical === false
