@@ -386,6 +386,57 @@ def build_change_timeline(ticker: str, history_files: list, max_days: int = 7) -
     return timeline
 
 
+def build_subscore_trend(ticker: str, history_files: list, lookback: int = 3) -> dict:
+    """Per cada subscore, indica si en els últims `lookback` dies disponibles
+    (com a màxim) la tendència neta ha estat a l'alça, a la baixa o plana.
+    Serveix per distingir, per exemple, un Momentum de 53 que ve de pujar
+    des de 40 d'un 53 que ve de baixar des de 70 — el mateix número, però
+    una situació ben diferent. Determinista, a partir de dades ja guardades."""
+    keys = ["momentum", "trend", "valuation", "quality", "growth", "risk"]
+    n = len(history_files)
+    if n == 0:
+        return {}
+
+    latest_idx = None
+    for i in range(n - 1, -1, -1):
+        _, m = history_files[i]
+        if ticker in m:
+            latest_idx = i
+            break
+    if latest_idx is None:
+        return {}
+    _, latest_map = history_files[latest_idx]
+    latest_sub = latest_map[ticker].get("subscores", {})
+
+    ref_idx = None
+    steps = 0
+    for i in range(latest_idx - 1, -1, -1):
+        _, m = history_files[i]
+        if ticker in m:
+            steps += 1
+            ref_idx = i
+            if steps >= lookback:
+                break
+    if ref_idx is None:
+        return {}
+    _, ref_map = history_files[ref_idx]
+    ref_sub = ref_map[ticker].get("subscores", {})
+
+    trend = {}
+    for key in keys:
+        tv, rv = latest_sub.get(key), ref_sub.get(key)
+        if tv is None or rv is None:
+            continue
+        delta = tv - rv
+        if delta >= 2:
+            trend[key] = "up"
+        elif delta <= -2:
+            trend[key] = "down"
+        else:
+            trend[key] = "flat"
+    return trend
+
+
 def build_recommendation_line(checklist: dict, row_sub: pd.Series) -> str:
     """Frase curta d'estat de la tesi (NO és un consell de compra/venda
     personalitzat, és un resum determinista del semàfor)."""
@@ -830,6 +881,7 @@ def main():
     for r in results:
         r.update(compute_evolution_metrics(r["ticker"], history_files))
         r["change_timeline"] = build_change_timeline(r["ticker"], history_files)
+        r["subscore_trend"] = build_subscore_trend(r["ticker"], history_files)
         r["recommendation_line"] = build_recommendation_line(r["checklist"], sub_lookup[r["ticker"]])
 
     universe_daily_summary = build_universe_daily_summary(results)
