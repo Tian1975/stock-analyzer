@@ -405,11 +405,21 @@ function renderChecklist(r) {
 
 function renderWatchList(r) {
   if (!r.watch_list || r.watch_list.length === 0) return "";
-  const items = r.watch_list.map((w) => `<li>${w}</li>`).join("");
+  const items = r.watch_list
+    .map((w) => {
+      // Compatibilitat amb dades antigues on watch_list encara fos una llista de strings.
+      const text = typeof w === "string" ? w : w.text;
+      const urgency = typeof w === "string" ? null : w.urgency;
+      const bar = urgency === null || urgency === undefined
+        ? ""
+        : `<div class="watch-urgency-track"><div class="watch-urgency-fill" style="width:${Math.round(urgency * 100)}%"></div></div>`;
+      return `<li>${text}${bar}</li>`;
+    })
+    .join("");
   return `
     <div class="watch-card">
       <div class="watch-title">⚠️ Què vigilar</div>
-      <p class="watch-subtitle">Què podria fer trontollar aquesta tesi:</p>
+      <p class="watch-subtitle">Què podria fer trontollar aquesta tesi (el més a prop, primer):</p>
       <ul class="watch-list">${items}</ul>
     </div>
   `;
