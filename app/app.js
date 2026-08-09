@@ -388,7 +388,10 @@ function renderChecklist(r) {
   const semaforoIcon = r.checklist.semaforo === "verd" ? "🟢" : r.checklist.semaforo === "groc" ? "🟡" : "🔴";
   const semaforoText = r.checklist.semaforo === "verd" ? "TESI VIGENT" : r.checklist.semaforo === "groc" ? "TESI A VIGILAR" : "TESI EN DUBTE";
   const items = r.checklist.items
-    .map((item) => `<li class="${item.ok ? "check-ok" : "check-fail"}">${item.ok ? "✔" : "✖"} ${item.label}</li>`)
+    .map((item) => {
+      const detail = item.detail ? ` <span class="check-detail">(${item.detail})</span>` : "";
+      return `<li class="${item.ok ? "check-ok" : "check-fail"}">${item.ok ? "✔" : "✖"} ${item.label}${detail}</li>`;
+    })
     .join("");
   return `
     <div class="section-title"><span>Estat de la tesi</span></div>
