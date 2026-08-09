@@ -571,6 +571,7 @@ body {
 }
 .checklist-list li.check-ok { color: var(--text); }
 .checklist-list li.check-fail { color: var(--text-tertiary); }
+.check-detail { color: var(--text-secondary); font-size: 12px; }
 
 .score-deltas {
   text-align: center;
