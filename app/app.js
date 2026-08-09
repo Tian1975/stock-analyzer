@@ -387,10 +387,18 @@ function renderChecklist(r) {
   if (!r.checklist) return "";
   const semaforoIcon = r.checklist.semaforo === "verd" ? "🟢" : r.checklist.semaforo === "groc" ? "🟡" : "🔴";
   const semaforoText = r.checklist.semaforo === "verd" ? "TESI VIGENT" : r.checklist.semaforo === "groc" ? "TESI A VIGILAR" : "TESI EN DUBTE";
+  let lastCritical = null;
   const items = r.checklist.items
     .map((item) => {
       const detail = item.detail ? ` <span class="check-detail">(${item.detail})</span>` : "";
-      return `<li class="${item.ok ? "check-ok" : "check-fail"}">${item.ok ? "✔" : "✖"} ${item.label}${detail}</li>`;
+      const badge = item.critical ? ` <span class="check-critical-badge">CRÍTIC</span>` : "";
+      const critClass = item.critical ? " check-critical" : "";
+      // Divisor visual just abans que comencin els criteris secundaris.
+      const divider = lastCritical === true && item.critical === false
+        ? `<li class="checklist-divider" aria-hidden="true"></li>`
+        : "";
+      lastCritical = item.critical;
+      return `${divider}<li class="${item.ok ? "check-ok" : "check-fail"}${critClass}">${item.ok ? "✔" : "✖"} ${item.label}${detail}${badge}</li>`;
     })
     .join("");
   return `

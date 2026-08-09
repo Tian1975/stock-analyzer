@@ -572,6 +572,26 @@ body {
 .checklist-list li.check-ok { color: var(--text); }
 .checklist-list li.check-fail { color: var(--text-tertiary); }
 .check-detail { color: var(--text-secondary); font-size: 12px; }
+.checklist-list li.check-critical { font-weight: 600; }
+.check-critical-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--amber);
+  background: rgba(255,193,7,0.12);
+  vertical-align: middle;
+}
+.checklist-divider {
+  height: 1px;
+  margin: 4px 0;
+  padding: 0 !important;
+  background: rgba(255,255,255,0.08);
+  list-style: none;
+}
 
 .score-deltas {
   text-align: center;
