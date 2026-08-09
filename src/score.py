@@ -512,6 +512,32 @@ def risk_label(row) -> str:
     return "alt"
 
 
+def build_diagnosis(checklist: dict, row_sub: pd.Series) -> dict:
+    """Diagnòstic curt d'una frase, pensat per llegir-se d'un cop d'ull abans
+    que qualsevol altra dada de la fitxa. Es basa només en els dos criteris
+    més determinants (tendència intacta i sense sobrecompra) combinats amb
+    el nivell de risc — la mateixa lògica de "els dos crítics que mai
+    t'hauries de saltar" que fem servir per interpretar la tesi a mà.
+    Determinista, no IA."""
+    items_by_key = {it["key"]: it["ok"] for it in checklist["items"]}
+    trend_ok = items_by_key.get("trend_intact", False)
+    not_overbought = items_by_key.get("not_overbought", False)
+    risk_ok = items_by_key.get("risk_controlled", False)
+    trend_score = row_sub.get("trend")
+
+    if trend_ok and not_overbought and risk_ok:
+        return {"icon": "🟢", "text": "Bon moment tècnic i risc controlat."}
+    if trend_ok and not_overbought and not risk_ok:
+        return {"icon": "🟡", "text": "Bon moment tècnic, però amb volatilitat elevada."}
+    if trend_ok and not not_overbought:
+        return {"icon": "🟡", "text": "Tendència forta, però ja car a curt termini (sobrecompra)."}
+    if not trend_ok and pd.notna(trend_score) and trend_score >= 40 and risk_ok:
+        return {"icon": "🟡", "text": "Pausa tècnica: la tendència s'ha aturat, de moment sense signes greus."}
+    if not trend_ok and not risk_ok:
+        return {"icon": "🔴", "text": "Risc elevat: tendència en contra i volatilitat alta alhora."}
+    return {"icon": "🟡", "text": "Tendència en contra; convé prudència abans d'ampliar posició."}
+
+
 def build_explanation(ticker: str, row: pd.Series, raw: pd.Series) -> list[str]:
     """Explicació basada en regles simples sobre valors reals — no generativa."""
     lines = []
@@ -757,6 +783,7 @@ def main():
         r["watch_list"] = build_watch_list(
             sub_lookup[ticker], raw_lookup[ticker], r["scores"]["mid_term"], r["checklist"]["semaforo"]
         )
+        r["diagnosis"] = build_diagnosis(r["checklist"], sub_lookup[ticker])
 
     # Deltes respecte a l'última execució (per mostrar ▲/▼/🆕 a la PWA)
     top10_tickers_today = {r["ticker"] for r in results[:10]}
