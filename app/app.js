@@ -449,6 +449,12 @@ function renderRecommendationLine(r) {
   return `<div class="recommendation-text ${cls}">${r.recommendation_line}</div>`;
 }
 
+function renderDiagnosisLine(r) {
+  if (!r.diagnosis) return "";
+  const cls = r.diagnosis.icon === "🟢" ? "rec-verd" : r.diagnosis.icon === "🔴" ? "rec-vermell" : "rec-groc";
+  return `<div class="diagnosis-text ${cls}">${r.diagnosis.icon} ${r.diagnosis.text}</div>`;
+}
+
 function renderTimeline(r) {
   if (!r.change_timeline || r.change_timeline.length === 0) return "";
   const entries = r.change_timeline
@@ -526,6 +532,7 @@ function renderDetail(ticker) {
     r.last_close !== null ? `${r.last_close.toFixed(2)}` : "—";
   document.getElementById("detail-updated").textContent = `Dades del ${r.as_of || "—"}`;
   document.getElementById("score-deltas").innerHTML = renderScoreDeltas(r);
+  document.getElementById("diagnosis-line").innerHTML = renderDiagnosisLine(r);
   document.getElementById("recommendation-line").innerHTML = renderRecommendationLine(r);
   CURRENT_DETAIL_TICKER = r.ticker;
 

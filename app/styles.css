@@ -688,6 +688,20 @@ body {
 .recommendation-text.rec-groc { color: var(--amber); }
 .recommendation-text.rec-vermell { color: var(--red); }
 
+/* ---------- Diagnòstic (titular curt a dalt de tot) ---------- */
+.diagnosis-text {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+}
+.diagnosis-text.rec-verd { color: var(--green); }
+.diagnosis-text.rec-groc { color: var(--amber); }
+.diagnosis-text.rec-vermell { color: var(--red); }
+
 /* ---------- Historial de la tesi ---------- */
 .timeline-list {
   display: flex;
