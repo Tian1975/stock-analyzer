@@ -450,23 +450,54 @@ def build_narrative(ticker: str, row_sub: pd.Series, row_raw: pd.Series, checkli
 
 def build_watch_list(row_sub: pd.Series, row_raw: pd.Series, mid_term_score, semaforo: str) -> list:
     """Genera la llista de "què vigilar": condicions actualment favorables
-    que, si es giressin, deteriorarien la tesi. Determinista, no IA."""
-    items = []
+    que, si es giressin, deteriorarien la tesi. Determinista, no IA.
+
+    Cada element porta una "urgency" (0-1): com més a prop d'1, més a prop
+    està la condició de trencar-se. La llista final es retorna ordenada de
+    més a menys urgent, perquè el punt que cal vigilar amb més atenció
+    surti sempre primer."""
+    items = []  # cada element: {"text": str, "urgency": float}
     trend_alignment = row_raw.get("trend_alignment")
+    trend_score = row_sub.get("trend")
     rsi = row_raw.get("rsi_raw")
     macd_hist = row_raw.get("macd_hist")
 
     if trend_alignment == 3:
-        items.append("Que trenqui la tendència (preu per sota de SMA50)")
+        # Trend score sol estar en zona alta (>60) quan la tendència està
+        # intacta; com més s'acosta a la zona baixa, més a prop de trencar-se.
+        if pd.notna(trend_score):
+            urgency = max(0.0, min(1.0, (100.0 - trend_score) / 40.0))
+        else:
+            urgency = 0.3
+        items.append({
+            "text": "Que trenqui la tendència (preu per sota de SMA50)",
+            "urgency": urgency,
+        })
+
     if pd.notna(rsi) and rsi < 70:
-        items.append(f"Que el RSI superi 70 (ara és {rsi:.0f})")
+        items.append({
+            "text": f"Que el RSI superi 70 (ara és {rsi:.0f})",
+            "urgency": max(0.0, min(1.0, rsi / 70.0)),
+        })
+
     if pd.notna(macd_hist) and macd_hist > 0:
-        items.append("Que el MACD es torni negatiu")
+        # No tenim una escala natural de "distància" pel MACD; se li dona
+        # una urgència mitjana constant perquè quedi entre els extrems.
+        items.append({
+            "text": "Que el MACD es torni negatiu",
+            "urgency": 0.5,
+        })
+
     if mid_term_score is not None and semaforo in ("verd", "groc"):
         threshold = 66 if semaforo == "verd" else 40
         if mid_term_score > threshold:
-            items.append(f"Que el score de mig termini baixi de {threshold}")
+            margin = mid_term_score - threshold
+            items.append({
+                "text": f"Que el score de mig termini baixi de {threshold}",
+                "urgency": max(0.0, min(1.0, 1.0 - margin / 20.0)),
+            })
 
+    items.sort(key=lambda it: it["urgency"], reverse=True)
     return items
 
 
