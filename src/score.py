@@ -824,6 +824,11 @@ def main():
             },
             "risk_label": risk_label(row_sub),
             "confidence_pct": float(confidence.loc[ticker]),
+            "trend_alignment": (
+                int(row_raw.get("trend_alignment"))
+                if pd.notna(row_raw.get("trend_alignment"))
+                else None
+            ),
             "explanation": build_explanation(ticker, row_sub, row_raw),
             "checklist": checklist,
             "what_changed": build_what_changed(row_sub, previous_result),
