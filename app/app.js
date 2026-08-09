@@ -584,12 +584,15 @@ function renderDetail(ticker) {
     momentum: "Momentum", trend: "Tendència", valuation: "Valoració",
     quality: "Qualitat", growth: "Creixement", risk: "Risc (seguretat)",
   };
+  const trendArrow = { up: "↗️", down: "↘️", flat: "➡️" };
   document.getElementById("detail-subscores").innerHTML = Object.entries(subscoreLabels)
     .map(([key, label]) => {
       const val = r.subscores[key];
+      const dir = r.subscore_trend ? r.subscore_trend[key] : null;
+      const arrow = dir && trendArrow[dir] ? `<span class="subscore-arrow subscore-arrow--${dir}">${trendArrow[dir]}</span>` : "";
       return `
         <div class="subscore-cell">
-          <div class="subscore-value">${val !== null ? val.toFixed(0) : "—"}</div>
+          <div class="subscore-value">${val !== null ? val.toFixed(0) : "—"}${arrow}</div>
           <div class="subscore-label">${label}</div>
         </div>
       `;
@@ -600,7 +603,6 @@ function renderDetail(ticker) {
   document.getElementById("detail-risk").className = `risk-chip risk-chip--${r.risk_label}`;
 
   document.getElementById("btn-broker-link").href = buildBrokerUrl(r.ticker);
-  document.getElementById("detail-confidence").textContent = `Confiança de dades: ${r.confidence_pct}%`;
 
   const explEl = document.getElementById("detail-explanation");
   if (r.explanation && r.explanation.length > 0) {

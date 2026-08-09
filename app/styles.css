@@ -438,6 +438,12 @@ body {
   font-weight: 800;
   font-size: 20px;
 }
+.subscore-arrow {
+  font-size: 12px;
+  margin-left: 3px;
+  vertical-align: middle;
+  opacity: 0.85;
+}
 .subscore-cell .subscore-label {
   font-size: 11px;
   color: var(--text-secondary);
