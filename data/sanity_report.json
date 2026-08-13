@@ -1,10 +1,18 @@
 {
-  "generated_at": "2026-08-12T20:39:08.347296+00:00",
+  "generated_at": "2026-08-13T20:38:13.957216+00:00",
   "missing_prices": [
-    "ROG.SW"
+    "ROG.SW",
+    "BBVA.MC",
+    "REP.MC",
+    "TEF.MC",
+    "FER.MC",
+    "AMS.MC",
+    "ACS.MC",
+    "CLNX.MC",
+    "CABK.MC"
   ],
   "missing_fundamentals": [],
   "duplicate_tickers": [],
-  "oldest_price_date": "2024-08-12",
-  "newest_price_date": "2026-08-12"
+  "oldest_price_date": "2024-08-13",
+  "newest_price_date": "2026-08-13"
 }
