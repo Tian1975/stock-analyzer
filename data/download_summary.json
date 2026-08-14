@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-08-13T20:38:13.953935+00:00",
-  "duration_seconds": 83.4,
+  "generated_at": "2026-08-14T20:27:57.028509+00:00",
+  "duration_seconds": 99.9,
   "provider": "Yahoo Finance",
   "version": "1.0.0",
-  "git_commit": "4ea399b",
+  "git_commit": "e80396d",
   "python_version": "3.11.15",
   "yfinance_version": "1.5.1",
   "pandas_version": "3.0.2",
@@ -19,35 +19,35 @@
     },
     {
       "ticker": "BBVA.MC",
-      "reason": "insufficient_sessions (9 < 200)"
+      "reason": "insufficient_sessions (10 < 200)"
     },
     {
       "ticker": "REP.MC",
-      "reason": "insufficient_sessions (8 < 200)"
-    },
-    {
-      "ticker": "TEF.MC",
       "reason": "insufficient_sessions (9 < 200)"
     },
     {
       "ticker": "FER.MC",
-      "reason": "insufficient_sessions (9 < 200)"
+      "reason": "insufficient_sessions (10 < 200)"
     },
     {
       "ticker": "AMS.MC",
-      "reason": "insufficient_sessions (9 < 200)"
+      "reason": "insufficient_sessions (10 < 200)"
     },
     {
       "ticker": "ACS.MC",
-      "reason": "insufficient_sessions (9 < 200)"
+      "reason": "insufficient_sessions (10 < 200)"
+    },
+    {
+      "ticker": "ELE.MC",
+      "reason": "insufficient_sessions (10 < 200)"
     },
     {
       "ticker": "CLNX.MC",
-      "reason": "insufficient_sessions (9 < 200)"
+      "reason": "insufficient_sessions (10 < 200)"
     },
     {
       "ticker": "CABK.MC",
-      "reason": "insufficient_sessions (9 < 200)"
+      "reason": "insufficient_sessions (10 < 200)"
     }
   ]
 }
