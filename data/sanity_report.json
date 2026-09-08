@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-09-07T22:28:46.883772+00:00",
+  "generated_at": "2026-09-08T22:19:49.089692+00:00",
   "missing_prices": [
     "ROG.SW"
   ],
   "missing_fundamentals": [],
   "duplicate_tickers": [],
-  "oldest_price_date": "2024-09-05",
-  "newest_price_date": "2026-09-07"
+  "oldest_price_date": "2024-09-09",
+  "newest_price_date": "2026-09-08"
 }
