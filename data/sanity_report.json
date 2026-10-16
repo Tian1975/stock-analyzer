@@ -1,11 +1,10 @@
 {
-  "generated_at": "2026-10-15T22:53:02.138779+00:00",
+  "generated_at": "2026-10-16T22:27:26.018050+00:00",
   "missing_prices": [
-    "ROG.SW",
-    "RIO.L"
+    "ROG.SW"
   ],
   "missing_fundamentals": [],
   "duplicate_tickers": [],
-  "oldest_price_date": "2024-10-15",
-  "newest_price_date": "2026-10-15"
+  "oldest_price_date": "2024-10-16",
+  "newest_price_date": "2026-10-16"
 }
