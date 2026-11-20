@@ -1,0 +1,1 @@
+{"ok": false, "ticker": "XOM", "error": "inconsistent_lengths {'Open': 500, 'High': 500, 'Low': 500, 'Close': 500, 'Volume': 501}"}

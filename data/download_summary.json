@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-11-19T01:39:14.180495+00:00",
-  "duration_seconds": 74.2,
+  "generated_at": "2026-11-20T01:38:03.601205+00:00",
+  "duration_seconds": 101.8,
   "provider": "Yahoo Finance",
   "version": "1.0.0",
-  "git_commit": "223acf3",
+  "git_commit": "c1345af",
   "python_version": "3.11.18",
   "yfinance_version": "1.5.1",
   "pandas_version": "3.0.2",
@@ -12,11 +12,11 @@
   "failed": 2,
   "success_rate_pct": 98.2,
   "fallback_individual_used": [
-    "VZ"
+    "XOM"
   ],
   "tickers_failed": [
     {
-      "ticker": "VZ",
+      "ticker": "XOM",
       "reason": "inconsistent_lengths {'Open': 500, 'High': 500, 'Low': 500, 'Close': 500, 'Volume': 501}"
     },
     {
