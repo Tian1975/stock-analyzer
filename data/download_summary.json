@@ -1,24 +1,18 @@
 {
-  "generated_at": "2026-11-20T01:38:03.601205+00:00",
-  "duration_seconds": 101.8,
+  "generated_at": "2026-11-21T01:03:28.220101+00:00",
+  "duration_seconds": 81.8,
   "provider": "Yahoo Finance",
   "version": "1.0.0",
-  "git_commit": "c1345af",
+  "git_commit": "1d481d0",
   "python_version": "3.11.18",
   "yfinance_version": "1.5.1",
   "pandas_version": "3.0.2",
   "processed": 110,
-  "ok": 108,
-  "failed": 2,
-  "success_rate_pct": 98.2,
-  "fallback_individual_used": [
-    "XOM"
-  ],
+  "ok": 109,
+  "failed": 1,
+  "success_rate_pct": 99.1,
+  "fallback_individual_used": [],
   "tickers_failed": [
-    {
-      "ticker": "XOM",
-      "reason": "inconsistent_lengths {'Open': 500, 'High': 500, 'Low': 500, 'Close': 500, 'Volume': 501}"
-    },
     {
       "ticker": "ROG.SW",
       "reason": "no_price_data"
